@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Build Your AI — a seven-lab interactive learning experience." />
+    <title>Build Your AI — Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Labs">
+        <a class="brand" href="#"><span class="brand-mark">✦</span><span>BUILD YOUR AI</span></a>
+        <div class="project-label">YOUR JOURNEY</div>
+        <nav class="lab-nav">
+          <button class="lab-link active" data-lab="1"><span class="lab-no">01</span><span><b>Make it predict</b><small>How a model talks</small></span></button>
+          <button class="lab-link" data-lab="2"><span class="lab-no">02</span><span><b>See language</b><small>Tokens & context</small></span></button>
+          <button class="lab-link" data-lab="3"><span class="lab-no">03</span><span><b>Teach with examples</b><small>Training data</small></span></button>
+          <button class="lab-link" data-lab="4"><span class="lab-no">04</span><span><b>Define good</b><small>Behaviour & testing</small></span></button>
+          <button class="lab-link" data-lab="5"><span class="lab-no">05</span><span><b>Create your model</b><small>Fine-tune & evaluate</small></span></button>
+          <button class="lab-link" data-lab="6"><span class="lab-no">06</span><span><b>Give it tools</b><small>Build an agent</small></span></button>
+          <button class="lab-link" data-lab="7"><span class="lab-no">07</span><span><b>Launch it</b><small>Your finished AI</small></span></button>
+        </nav>
+        <div class="sidebar-footer"><span class="pulse"></span> Prototype mode</div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar"><div><span class="eyebrow" id="lab-eyebrow">LAB 1 OF 7</span><span class="save-state">All changes saved</span></div><button class="underhood" id="underhood">⌘ Under the hood</button></header>
+
+        <div class="lab-content" id="lab-content">
+          <div class="lab-heading"><div><p class="eyebrow">HOW CAN A MACHINE TALK?</p><h1>It predicts what comes <em>next.</em></h1><p class="intro">Try guiding a language model one piece at a time. The context changes what it thinks is likely.</p></div><div class="lab-chip">EXPERIMENT<br><strong>01 / 03</strong></div></div>
+          <section class="prediction-stage" aria-label="Prediction experiment">
+            <div class="prompt-line"><span class="prompt-label">COMPLETE THE SENTENCE</span><p id="prediction-sentence">A doctor works in a <span class="cursor">▍</span></p></div>
+            <div class="prediction-grid" id="prediction-grid">
+              <button class="prediction-option" data-word="hospital"><span>hospital</span><b>61%</b><i style="width:61%"></i></button>
+              <button class="prediction-option" data-word="clinic"><span>clinic</span><b>17%</b><i style="width:17%"></i></button>
+              <button class="prediction-option" data-word="school"><span>school</span><b>6%</b><i style="width:6%"></i></button>
+              <button class="prediction-option" data-word="laboratory"><span>laboratory</span><b>4%</b><i style="width:4%"></i></button>
+            </div>
+            <div class="stage-actions"><button class="text-button" id="reset-prediction">↺ Reset</button><span id="prediction-note">Choose the next piece.</span></div>
+          </section>
+          <section class="build-card"><div><span class="eyebrow">YOUR FIRST BUILD DECISION</span><h2>What should your future AI help someone do?</h2><p>We will use this to make examples and test whether your model improves.</p></div><div class="purpose-form"><input id="purpose-input" value="Teach secondary-school biology simply." aria-label="AI purpose" /><input id="name-input" value="Mwalimu" aria-label="AI name" /><button class="primary-button" id="save-blueprint">Save blueprint <span>→</span></button></div></section>
+        </div>
+      </section>
+
+      <aside class="ai-panel">
+        <div class="ai-panel-top"><span class="eyebrow">MY AI</span><button class="more-button" aria-label="More options">•••</button></div>
+        <div class="ai-identity"><div class="ai-orb"><span></span></div><div><h2 id="ai-name">Mwalimu</h2><p id="ai-purpose">Biology tutor</p></div></div>
+        <div class="build-progress"><div><span>BUILD PROGRESS</span><b id="progress-label">1 of 7 labs</b></div><div class="progress-track"><i id="progress-fill"></i></div></div>
+        <dl class="ai-stats">
+          <div><dt>Purpose</dt><dd id="stat-purpose"><span class="ready">●</span> Defined</dd></div>
+          <div><dt>Languages</dt><dd id="stat-languages">—</dd></div>
+          <div><dt>Examples</dt><dd id="stat-examples">0 approved</dd></div>
+          <div><dt>Model</dt><dd id="stat-model">Not created</dd></div>
+          <div><dt>Knowledge</dt><dd id="stat-knowledge">0 sources</dd></div>
+          <div><dt>Tools</dt><dd id="stat-tools">0 connected</dd></div>
+        </dl>
+        <div class="truth-card"><span>TECHNICAL HONESTY</span><p id="truth-text">You’ll create a customized model derivative—not a foundation model from scratch.</p><button id="truth-button">What does that mean? <span>↗</span></button></div>
+      </aside>
+    </main>
+    <div class="modal-backdrop" id="modal-backdrop" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" id="modal-close">×</button><span class="eyebrow">UNDER THE HOOD</span><h2 id="modal-title">What you are building</h2><p>Your model starts as an open-weight base model. Your examples train a small LoRA adapter that changes how it responds. Knowledge, instructions and tools are added later to create an agent.</p><div class="model-equation"><span>Base model</span><b>+</b><span>Your adapter</span><b>+</b><span>Generation settings</span><b>=</b><strong>Your model</strong></div></div></div>
+    <script src="app.js"></script>
+  </body>
+</html>

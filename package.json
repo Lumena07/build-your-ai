@@ -1,0 +1,1 @@
+{"name":"build-your-ai-prototype","version":"0.1.0","private":true,"scripts":{"start":"npx --yes serve . -l 4173","build":"node build.cjs"}}
