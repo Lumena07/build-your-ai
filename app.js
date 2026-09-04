@@ -1,6 +1,6 @@
 /* Build Your AI local MVP.  Data stays in this browser unless it is exported. */
 const KEY = 'ai102-v1';
-const RESET_MARKER = 'ai102-fresh-start-2026-09-04-r4';
+const RESET_MARKER = 'ai102-fresh-start-2026-09-04-r5';
 const presets = [
   {id:'tutor', icon:'🌿', title:'Biology tutor', purpose:'Help secondary-school learners understand biology clearly.', languages:'English + Swahili', behavior:'Explain simply, use everyday examples, answer in the user’s language, and ask one checking question.', samples:['Explain photosynthesis to a 14-year-old.','Nifafanulie cell division kwa Kiswahili rahisi.']},
   {id:'study', icon:'📚', title:'Study assistant', purpose:'Help students revise, practise, and build confidence.', languages:'English + Swahili', behavior:'Break work into short steps, give a worked example, then a small practice question.', samples:['Help me revise algebra for a test.','Make me a simple study plan.']},
