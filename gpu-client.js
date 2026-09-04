@@ -11,6 +11,12 @@ window.BuildAICloud = (() => {
     if (!response.ok) throw new Error(body.detail || 'The GPU service could not complete the request.');
     return body;
   };
+  const formRequest = async (path, body) => {
+    const response = await fetch(`${base()}${path}`, { method: 'POST', body });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || 'Eve could not complete that right now.');
+    return result;
+  };
   return {
     enabled: () => Boolean(base()),
     startTraining: (project) => request('/v1/training-jobs', {
@@ -28,5 +34,14 @@ window.BuildAICloud = (() => {
         knowledge: project.knowledge.slice(0, 4),
       }),
     }),
+    teacherReady: () => Boolean(base()),
+    teacherReply: (lesson) => request('/v1/teacher/respond', { method: 'POST', body: JSON.stringify(lesson) }),
+    teacherSpeech: (text) => request('/v1/teacher/speech', { method: 'POST', body: JSON.stringify({ text }) }),
+    teacherTranscribe: (audio, language = 'en') => {
+      const form = new FormData();
+      form.append('audio', audio, 'learner.webm');
+      form.append('language', language);
+      return formRequest('/v1/teacher/transcribe', form);
+    },
   };
 })();

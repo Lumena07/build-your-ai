@@ -2,7 +2,7 @@
  * Browser-safe configuration only. Never put RunPod, cloud-storage, or other
  * provider secrets in this file: the browser can read everything here.
  *
- * Set apiBaseUrl after deploying gpu-service/api, for example:
- * window.BUILD_AI_CONFIG = { apiBaseUrl: "https://api.example.com" };
+ * Eve's private teacher service runs on this computer by default. The API key
+ * belongs only in gpu-service/api/.env — never in this browser-delivered file.
  */
-window.BUILD_AI_CONFIG = { apiBaseUrl: "" };
+window.BUILD_AI_CONFIG = { apiBaseUrl: "http://127.0.0.1:8787" };

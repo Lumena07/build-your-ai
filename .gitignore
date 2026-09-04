@@ -2,4 +2,6 @@ __pycache__/
 *.py[cod]
 .env
 .venv/
+.teacher-venv/
 gpu-service/api/app.db
+gpu-service/api/data/
