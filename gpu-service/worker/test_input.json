@@ -1,0 +1,15 @@
+{
+  "input": {
+    "operation": "train",
+    "project_id": "demo-project",
+    "model_name": "Mwalimu",
+    "base_model": "SET_A_REAL_OPEN_WEIGHT_MODEL_ID",
+    "adapter_key": "demo-project/v1",
+    "behavior": "Explain biology simply, using English or Swahili.",
+    "examples": [
+      {"input": "Explain photosynthesis.", "output": "Photosynthesis is how green plants use sunlight, water and carbon dioxide to make food."},
+      {"input": "What is a cell?", "output": "A cell is the smallest living building block of a plant or animal."},
+      {"input": "Nifafanulie DNA.", "output": "DNA ni kama kitabu cha maelekezo ndani ya seli."}
+    ]
+  }
+}
