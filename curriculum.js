@@ -24,11 +24,23 @@ function learningContext(page,p){
   return {...lesson,step,next:lesson.steps[step]};
 }
 
+const lessonJourney={
+ intro:['Your journey: turn one starting idea into an assistant you can explain and test.','What would make this assistant worth using?'],
+ lab1:['Start here gave your assistant a purpose. First, discover what AI actually is.','Could a fluent answer still be wrong? Give a realistic example.'],
+ lab2:['Day 1 showed a text answer. Now look at the small pieces of text a model works with.','Why might two sentences with the same number of words use different numbers of tokens?'],
+ lab3:['Day 2 explored text pieces. Now show the kind of complete answer you want those pieces to form.','Could an example be well written but teach the wrong thing? Explain how.'],
+ lab4:['Day 3 showed good answers through examples. Now describe their shared qualities as clear instructions.','Write two rules that conflict. How would you resolve the conflict?'],
+ lab5:['You have examples and instructions. Now distinguish guiding an existing model from adapting it, and compare a version fairly.','Why is testing only the questions used in your examples a weak test?'],
+ lab6:['A model can produce text. Now extend your assistant with reference information and tools that perform specific jobs.','For your preset, which request needs a source and which needs a calculator? Why?'],
+ lab7:['Bring together your preset, examples, instructions, version and tools. Test the whole assistant.','Design a test that could expose a weakness, rather than only show a success.']
+};
 function learningCard(){
   const p=project(),c=learningContext(store.page,p);
   if(!c||!p.guidance.learnerName)return '';
-  return `<section class="card" aria-label="Today’s learning goal"><b>Today’s goal</b><p>${esc(c.goal)}</p><b>Next small step</b><p>${esc(c.next)}</p><details><summary>One thing to remember</summary><p>${esc(c.takeaway)}</p></details></section>`;
+  const journey=lessonJourney[store.page];
+  return `<section class="card" aria-label="Today’s learning goal"><p>${esc(journey[0])}</p><b>Today’s goal</b><p>${esc(c.goal)}</p><details><summary>Go deeper with Eve</summary><p>${esc(journey[1])}</p><button class="button secondary" onclick="challengeWithEve()">Explore this challenge</button></details></section>`;
 }
+function challengeWithEve(){const page=store.page;eveTeachMoment(labDay(page)||0,`The learner requested a harder challenge: ${lessonJourney[page][1]}. Ask for their reasoning using the selected preset. Wait for their attempt before giving an answer. Keep the explanation short but intellectually meaningful.`);}
 
 function teacherPageContext(day){
   const p=project(),page=day===0?'intro':`lab${day}`,c=learningContext(page,p);
