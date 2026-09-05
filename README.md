@@ -1,8 +1,8 @@
 # Build Your AI — runnable MVP
 
-Open `index.html` in any modern browser. No installation, account, or server is needed.
+Serve this folder locally and open `http://127.0.0.1:8000/index.html`. The practice activities do not require a GPU. Eve's natural voice requires the private teacher service and an OpenAI key.
 
-This is a complete local learning/product prototype for the seven-lab experience. It stores projects in the browser, includes six presets plus a custom option, supports training examples, evaluation prompts, model version creation, a knowledge library, calculator/notes/tasks tools, an agent playground, and JSON export.
+This is a learning prototype for the seven-lab experience. It stores projects in the browser and includes six presets, training examples, test questions, practice versions, reference notes, tools, three guided final tests and JSON export.
 
 ## Eve — a live AI teacher
 
@@ -26,9 +26,11 @@ that response. The key never goes in the website or GitHub.
    .\.teacher-venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8787
    ```
 
-4. Keep that small window open, then refresh `index.html` and choose **Begin
-   with Eve**. The learner can type, or click **Speak to Eve** and allow the
-   microphone when their browser asks.
+4. Keep the service running, then choose **Start AI 102**. Allow the microphone when requested. Eve's button starts recording; **Finish speaking** submits that turn. **Stop Eve** stops speech. **Try again** retries a failed turn. Returning learners choose **Resume with Eve**.
+
+Activities appear one at a time. Small questions check understanding before completion. **Restart this learner** asks for confirmation and removes only the active project; other saved projects remain. Updates no longer automatically erase learner data.
+
+Run `node test-course.cjs` and `node test-experience.cjs` for course and browser checks. The browser checks use mocked voice responses; they do not establish real microphone, network or voice quality. Live testing with a learner is still needed.
 
 Recorded audio is sent to OpenAI only to transcribe that turn. The site stores
 the written lesson conversation in that browser; it does not put the API key,

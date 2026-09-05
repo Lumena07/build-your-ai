@@ -1,6 +1,5 @@
 /* Build Your AI local MVP.  Data stays in this browser unless it is exported. */
 const KEY = 'ai102-v1';
-const RESET_MARKER = 'ai102-fresh-start-2026-09-04-r8';
 const presets = [
   {id:'tutor', icon:'🌿', title:'Biology tutor', purpose:'Help secondary-school learners understand biology clearly.', languages:'English + Swahili', behavior:'Explain simply, use everyday examples, answer in the user’s language, and ask one checking question.', samples:['Explain photosynthesis to a 14-year-old.','Nifafanulie cell division kwa Kiswahili rahisi.']},
   {id:'study', icon:'📚', title:'Study assistant', purpose:'Help students revise, practise, and build confidence.', languages:'English + Swahili', behavior:'Break work into short steps, give a worked example, then a small practice question.', samples:['Help me revise algebra for a test.','Make me a simple study plan.']},
@@ -15,7 +14,7 @@ const labs = [
 let store = load();
 function defaultProject(){return {id:crypto.randomUUID(),name:'',purpose:'',preset:'',languages:'English',samples:[],examples:[],evaluation:[],knowledge:[],behavior:'Explain clearly and honestly.',temperature:.35,tools:{calculator:true,knowledge:false,notes:false,tasks:false},notes:[],tasks:[],model:null,createdAt:new Date().toISOString(),completed:[],guidance:{style:'auto',detail:'short',dailyMode:true,startedAt:null,voiceReplies:true,helpDay:null,understoodDays:[],interests:{},day1Step:1,day1LessonVersion:2},teacherMessages:[]};}
 function normaliseProject(p){p.guidance??={style:'auto',detail:'short',dailyMode:true,startedAt:null,voiceReplies:true,helpDay:null,understoodDays:[],interests:{}};p.guidance.style='auto';if(p.guidance.day1LessonVersion!==2){p.guidance.day1LessonVersion=2;p.guidance.day1Step=1;p.guidance.humanGuess='';p.guidance.day1AIChoice='';p.guidance.lessonMoment=null;}p.guidance.day1Step??=1;p.guidance.voiceReplies??=true;p.guidance.understoodDays??=[];p.guidance.interests??={};p.guidance.eveHistory??=[];p.guidance.learnerName??='';p.guidance.awaitingName??=false;p.guidance.eveWelcomes??={};p.teacherMessages??=[];p.tools??={calculator:true,knowledge:false,notes:false,tasks:false};return p;}
-function load(){try {if(localStorage.getItem(RESET_MARKER)!=='done'){localStorage.removeItem('build-your-ai-v1');localStorage.removeItem(KEY);localStorage.setItem(RESET_MARKER,'done');}let x=JSON.parse(localStorage.getItem(KEY));if(x&&x.projects){x.projects.forEach(normaliseProject);return x;}return {projects:[],active:null,page:'intro'};}catch{return {projects:[],active:null,page:'intro'};}}
+function load(){try {let x=JSON.parse(localStorage.getItem(KEY));if(x&&x.projects){x.projects.forEach(normaliseProject);return x;}return {projects:[],active:null,page:'intro'};}catch{return {projects:[],active:null,page:'intro'};}}
 function save(){localStorage.setItem(KEY,JSON.stringify(store));}
 function active(){let p=store.projects.find(p=>p.id===store.active);return p&&normaliseProject(p);}
 function project(){let p=active(); if(!p){p=defaultProject();store.projects.push(p);store.active=p.id;save();}return p;}
@@ -102,7 +101,7 @@ function lab7(){let p=project();if(!p.model)return `${header('LAB 7 · LAUNCH','
 <div class="card"><h2>Try these test scenarios</h2><div class="grid3"><div><b>Normal answer</b><p>${esc(p.samples[0]||'Ask a typical user question.')}</p></div><div><b>Knowledge lookup</b><p>${p.knowledge.length?'Ask something that appears in your library.':'Add a source in Lab 3, then test it here.'}</p></div><div><b>Tool usage</b><p>Ask “What is 15% of 800?” to test the calculator.</p></div></div></div>`;}
 function firstBehavior(p){return (p.behavior||'I will help clearly.').split(/[.!]/)[0]+'.';}
 function saveAgentRules(){project().behavior=document.querySelector('#agent-behavior').value.trim();save();toast('Agent instructions saved.');}
-function launch(){complete('lab7');save();toast(`${baseName(project())} is live in this browser.`);go('dashboard');}
+function launch(){complete('lab7');save();toast(`${baseName(project())} is saved in this browser. It has not been published online.`);go('dashboard');}
 const lessonNotes={
   1:{name:'What is AI?',simple:'AI is a computer helper that uses its chosen job, examples, and behaviour rules to make a helpful best response to a learner’s request.',example:'A biology tutor preset gets a biology question and is guided to explain simply. A business helper preset gets a business question and is guided to be practical.',try:'Use your preset’s sample question and add one useful detail about what the learner needs.'},
   2:{name:'Tokens',simple:'Before AI can work with a sentence, it breaks the sentence into small pieces called tokens.',example:'“I love biology!” may become small pieces like “I”, “ love”, “ biology”, and “!”.',try:'Paste one short sentence in the Token Lab. Do not worry about the numbers—just look at the coloured pieces.'},
@@ -183,4 +182,5 @@ function download(filename,data){let a=document.createElement('a');a.href=URL.cr
 function exportProject(){let p=active();if(!p)return;download(`${(p.name||'my-ai').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.json`,{manifest:{format:'build-your-ai-export',exportedAt:new Date().toISOString(),modelTruth:'Base model + learner adapter/configuration + agent components'},project:p});}
 function exportAll(){download('build-your-ai-projects.json',store.projects);}
 installLearningEvents();
+installExperience();
 render();

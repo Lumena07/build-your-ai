@@ -1,4 +1,5 @@
 :root { --navy:#081a2b; --navy2:#102b45; --ink:#132238; --muted:#627086; --paper:#f7f8fb; --line:#dce3ec; --teal:#18a39b; --mint:#dff7f3; --gold:#efb84e; --white:#fff; --danger:#c14a4a; --shadow:0 12px 35px rgba(11,36,61,.1); }
+[hidden]{display:none!important}main .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}#eve-retry{margin:16px 0}#eve-retry:empty{display:none}.actions span{align-self:center}
 * { box-sizing:border-box; } body { margin:0; background:var(--paper); font:15px/1.55 Inter, ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); }
 button,input,textarea,select { font:inherit; } button { cursor:pointer; } .shell { min-height:100vh; display:grid; grid-template-columns:260px minmax(0,1fr) 300px; }
 .sidebar { background:var(--navy); color:#dce9f7; padding:24px 18px; position:sticky; top:0; height:100vh; } .brand { font-weight:800; color:white; letter-spacing:-.5px; font-size:20px; margin-bottom:4px; } .tagline { color:#94afc9; font-size:12px; margin-bottom:28px; }

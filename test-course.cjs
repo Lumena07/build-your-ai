@@ -32,7 +32,7 @@ const pageContext=vm.createContext({
  document:{querySelector:s=>s==='#app'?app:null,getElementById:()=>null,addEventListener(){}},
  window:{},setTimeout:()=>0,console
 });
-vm.runInContext(fs.readFileSync('curriculum.js','utf8')+'\n'+fs.readFileSync('app.js','utf8'),pageContext);
+vm.runInContext(fs.readFileSync('curriculum.js','utf8')+'\n'+fs.readFileSync('experience.js','utf8')+'\n'+fs.readFileSync('app.js','utf8'),pageContext);
 vm.runInContext(`
 project().guidance.learnerName='Test';project().preset='tutor';
 for(const page of ['intro','lab1','lab2','lab3','lab4','lab5','lab6','lab7']){
