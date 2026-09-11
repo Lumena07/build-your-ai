@@ -37,14 +37,20 @@ const assert=require('node:assert/strict');
    if(hidden)assert.doesNotMatch(turn.body.activity,hidden);
    assert.deepEqual(turn.body.recent_turns,[],'Automatic guidance reused an answered question');
   }
+  function assertHandoff(turn,label){
+   assert.ok(turn.body.previous_takeaway,`${label} did not carry the previous lesson goal`);
+   assert.ok(turn.body.lesson_connection,`${label} did not connect the lessons`);
+   assert.ok(turn.body.opening_action,`${label} did not identify the first current action`);
+  }
   // Confirm the learner begins with aligned Day 1 and Day 2 introductions.
-  assertTurn(await goDay(1),'What is AI?',/Does every computer program use AI/i,/Predict first/i);
+  let turn;
+  turn=await goDay(1);assertTurn(turn,'What is AI?',/Does every computer program use AI/i,/Predict first/i);assertHandoff(turn,'Start here to Day 1');
   await page.evaluate(()=>{const p=project();p.completed.push('lab1');p.guidance.day2Step=1;save();});
-  assertTurn(await goDay(2),'Tokens',/From answers to text pieces|preset question/i,/Token detective/i);
+  turn=await goDay(2);assertTurn(turn,'Tokens',/From answers to text pieces|preset question/i,/Token detective/i);assertHandoff(turn,'Day 1 to Day 2');
   await page.evaluate(()=>{const p=project();p.completed.push('lab2');save();});
 
   // Day 3: create, review and store examples, then distinguish knowledge.
-  let turn=await goDay(3);assertTurn(turn,'Examples',/Add a training example/i,/Knowledge library/i);
+  turn=await goDay(3);assertTurn(turn,'Examples',/Add a training example/i,/Knowledge library/i);assertHandoff(turn,'Day 2 to Day 3');
   for(let index=1;index<=3;index++){
    await page.locator('#ex-in').fill(`Business question ${index}`);await page.locator('#ex-out').fill(`Useful answer ${index}`);
    const before=turns.length;await page.getByRole('button',{name:'Approve example'}).click();turn=await waitTurn(before,`Day 3 example ${index}`);assertTurn(turn,'Examples',/Add a training example/i,/Knowledge library/i);
@@ -56,7 +62,7 @@ const assert=require('node:assert/strict');
   assert.equal(await page.evaluate(()=>store.page),'lab4');
 
   // Day 4: explore creativity, set a rule and save separate test questions.
-  turn=await waitLesson('Behaviour',before,'Day 4 opening');assertTurn(turn,'Behaviour',/Focused or creative/i,/Questions to test it with/i);
+  turn=await waitLesson('Behaviour',before,'Day 4 opening');assertTurn(turn,'Behaviour',/Focused or creative/i,/Questions to test it with/i);assertHandoff(turn,'Day 3 to Day 4');
   await page.locator('#temp').fill('0.8');
   before=turns.length;await page.getByRole('button',{name:'Next activity',exact:true}).click();turn=await waitTurn(before,'Day 4 rules');assertTurn(turn,'Behaviour',/Write the behaviour rules/i,/Focused or creative/i);
   await page.locator('#behavior').fill('Use two short sentences and one practical example.');
@@ -66,20 +72,20 @@ const assert=require('node:assert/strict');
   assert.equal(await page.evaluate(()=>store.page),'lab5');
 
   // Day 5: pass the understanding gate, create a version and open comparison.
-  turn=await waitLesson('Your model',before,'Day 5 opening');assertTurn(turn,'Your model',/Approved examples|Create BusinessHelper/i,/Before \/ after evaluation/i);
+  turn=await waitLesson('Your model',before,'Day 5 opening');assertTurn(turn,'Your model',/Approved examples|Create BusinessHelper/i,/Before \/ after evaluation/i);assertHandoff(turn,'Day 4 to Day 5');
   await page.getByRole('button',{name:/Create BusinessHelper-1/}).click();await page.getByRole('button',{name:'Comparing answers to the same separate test question'}).click();
   assert.equal(await page.evaluate(()=>Boolean(project().model)),true);
   before=turns.length;await page.getByRole('button',{name:'Next activity',exact:true}).click();turn=await waitTurn(before,'Day 5 comparison');assertTurn(turn,'Your model',/Before \/ after evaluation/i,/Create a new version/i);
   before=turns.length;await page.getByRole('button',{name:'Give your model tools →'}).click();assert.equal(await page.evaluate(()=>store.page),'lab6');
 
   // Day 6: enable a real visible tool choice, inspect its trace and continue.
-  turn=await waitLesson('Tools',before,'Day 6 opening');assertTurn(turn,'Tools',/Calculator|Knowledge search/i,/Tool trace preview/i);
+  turn=await waitLesson('Tools',before,'Day 6 opening');assertTurn(turn,'Tools',/Calculator|Knowledge search/i,/Tool trace preview/i);assertHandoff(turn,'Day 5 to Day 6');
   before=turns.length;await page.getByRole('button',{name:/Calculator/}).click();turn=await waitTurn(before,'Day 6 calculator');assertTurn(turn,'Tools',/Calculator/i,/Tool trace preview/i);
   before=turns.length;await page.getByRole('button',{name:'Next activity',exact:true}).click();turn=await waitTurn(before,'Day 6 trace');assertTurn(turn,'Tools',/Tool trace preview/i,/Knowledge search/i);
   before=turns.length;await page.getByRole('button',{name:'Save my tools →'}).click();await page.getByRole('button',{name:'Computes the arithmetic'}).click();assert.equal(await page.evaluate(()=>store.page),'lab7');
 
   // Day 7: Eve follows each test state instead of replaying the prior answer.
-  turn=await waitLesson('Launch',before,'Day 7 opening');assertTurn(turn,'Launch',/A normal question/i,/question it may not know/i);
+  turn=await waitLesson('Launch',before,'Day 7 opening');assertTurn(turn,'Launch',/A normal question/i,/question it may not know/i);assertHandoff(turn,'Day 6 to Day 7');
   for(const expected of [/A normal question/i,/question it may not know/i,/tool task/i]){
    assert.match(await page.locator('main').innerText(),expected);
    before=turns.length;await page.getByRole('button',{name:'Try this question'}).click();turn=await waitTurn(before,'Day 7 trial');assert.equal(turn.body.lesson,'Launch');assert.deepEqual(turn.body.recent_turns,[]);

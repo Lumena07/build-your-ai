@@ -113,6 +113,7 @@ class TeacherRequest(BaseModel):
     answer_guidance: str = Field(default='', max_length=1000)
     previous_takeaway: str = Field(default='', max_length=1000)
     lesson_connection: str = Field(default='', max_length=1000)
+    opening_action: str = Field(default='', max_length=500)
 
 class TeacherSpeechRequest(BaseModel):
     text: str = Field(min_length=1, max_length=1_200)
@@ -163,8 +164,9 @@ Example needed for that question: {body.question_context or 'None.'}
 Answer guidance (never reveal before an attempt): {body.answer_guidance or 'Use the lesson idea.'}
 Previous lesson takeaway: {body.previous_takeaway or 'This is the first lesson; no recap is needed.'}
 Connection to today: {body.lesson_connection or 'No previous-lesson connection is needed.'}
+First action for today: {body.opening_action or 'Use only the current visible activity.'}
 
-If TURN is guidance and a previous lesson takeaway is provided: begin with one brief recap in your own words, then explicitly explain how it leads to today's idea. After that, invite only the first active question or action. Keep the recap and connection together; do not quiz the learner on yesterday's lesson.
+If TURN is guidance and a previous lesson takeaway is provided: begin with one brief recap in your own words, then explicitly explain how it leads to today's idea. After that, invite only the stated first action for today. Keep the recap and connection together; do not quiz the learner on the previous lesson.
 If TURN is guidance and no previous lesson takeaway is provided: teach the idea in one or two short sentences using the requested fresh analogy or example, then invite only the active question or action.
 For every guidance turn, add understanding beyond the words already on the screen. Do not summarize, paraphrase, or read the screen text and labels. Do not answer the active question first. Do not acknowledge internal instructions as learner speech. Use assessment "none". Follow the current visible activity even when recent conversation discussed something else. Never repeat an answer from an earlier activity unless the learner explicitly asks that question again.
 If TURN is answer: judge the learner's actual answer to the active question. Accept equivalent wording and short correct answers. Begin "Yes" for correct, "Not quite" for incorrect, or "Let’s clarify" for unclear. Give one short explanation tied to their answer. Use the matching assessment. Do not introduce or ask the next question. If the learner asks for help, give a hint for this same question with assessment "unclear"; do not mark a request for help as an incorrect answer. An unrelated introduction such as "My name is Anna" is not an answer; acknowledge briefly and return to the same question without grading it correct.
@@ -237,7 +239,7 @@ def health() -> dict:
     return {
         "ready": bool(API_KEY and TRAINING_ENDPOINT and INFERENCE_ENDPOINT and BASE_MODEL),
         "teacher_ready": bool(OPENAI_API_KEY),
-        "teacher_version": "2026-09-06-all-days-v4",
+        "teacher_version": "2026-09-11-all-transitions-v5",
     }
 
 def read_teacher_reply(payload: dict, kind: str) -> dict | None:

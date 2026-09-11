@@ -240,7 +240,7 @@ async function speakTurn(text,token){
  source.onended=()=>{if(token===voiceSession.generation){voiceSession.source=null;voiceSession.retry=null;voiceState('idle');}};
  source.start();
 }
-async function runVoice(day,message,learner=false){
+async function runVoice(day,message,learner=false,transition=null){
  if(!voiceSession.enabled||voiceSession.phase==='recording'||store.page!==(day===0?'intro':`lab${day}`))return;
  const answerInput=learner?(day===1?document.querySelector('textarea[id^="day1-answer-"]'):day===2?document.getElementById('day2-answer'):null):null;
  if(answerInput){
@@ -259,11 +259,11 @@ async function runVoice(day,message,learner=false){
   if(day===1)await checkDay1Answer(key);else await checkDay2Answer();return;
  }
  cancelVoice();const token=voiceSession.generation;
- voiceSession.retry=()=>runVoice(day,message,learner);
+ voiceSession.retry=()=>runVoice(day,message,learner,transition);
  if(learner)saveEveTurn(day,'learner',message);
  voiceState('thinking');
  try{
-  const reply=await window.BuildAICloud.teacherReply(evePayload(day,message,learner?'conversation':'guidance'));
+  const reply=await window.BuildAICloud.teacherReply(evePayload(day,message,learner?'conversation':'guidance',transition));
   if(token!==voiceSession.generation)return;
   if(!reply.text?.trim())throw Error('No teaching answer was returned.');
   saveEveTurn(day,'eve',reply.text);updateEveDebug('Eve received her answer.',{reply:reply.text,error:''});
@@ -327,9 +327,9 @@ function restartLearner(){
  if(!confirm('Restart this learner? This removes this learner’s name, conversations and AI project from this browser. Other projects stay saved.'))return;
  cancelVoice();const id=store.active;store.projects=store.projects.filter(p=>p.id!==id);
  const fresh=defaultProject();store.projects.push(fresh);store.active=fresh.id;store.page='intro';
- voiceSession.enabled=false;courseResuming=false;pendingCheck=null;evePageVisit='';save();render();
+ voiceSession.enabled=false;courseResuming=false;pendingCheck=null;evePageVisit='';evePreviousPage='';save();render();
 }
-function resumeLearner(){courseResuming=false;voiceSession.enabled=true;unlockEveAudio();evePageVisit='';render();}
+function resumeLearner(){courseResuming=false;voiceSession.enabled=true;unlockEveAudio();evePageVisit='';evePreviousPage='';render();}
 
 function decorateActivities(){
  const p=project(),main=document.querySelector('main');if(!main)return;
@@ -378,12 +378,13 @@ function installExperience(){
  lab2=guidedDay2;
  lab7=guidedLaunch;
  temperaturePreview=function(){const el=document.getElementById('temp');if(!el)return;const x=presetPractice[project().preset]||presetPractice.tutor;document.getElementById('temp-value').textContent=Number(el.value).toFixed(1);document.getElementById('temp-answer').textContent=(Number(el.value)<.5?'Focused example: ':'More conversational example: ')+x.answer+(Number(el.value)<.5?'':' Let’s work through one small part together.');};
- courseGuide.lab1.steps=['Discover everyday AI tasks and predict what your assistant might do.','Inspect a prepared answer and learn where text AI answers come from.','Compare confidence with evidence in a question the assistant cannot know.','Choose how to use an AI answer responsibly; optionally explain AI in your own words.'];
  lessonNotes[1].simple='AI systems perform tasks such as recognising speech, making predictions and generating text. Modern models learn patterns from training examples. A text model uses these patterns and the current question to generate a response; it can be wrong.';
  lessonNotes[1].try=courseGuide.lab1.steps[0];
  advanceDay1=step=>{project().guidance.day1Step=step;save();render();eveTeachMoment(1,'The learner moved to the next part of the introduction. Teach the visible idea. Ask only the one question already shown on the page, wait for the typed answer, and do not reveal its answer first.');};
  const baseRender=render;
  render=function(){baseRender();decorateActivities();};
+ const baseGo=go;
+ go=function(page){evePreviousPage=voiceSession.enabled?store.page:'';return baseGo(page);};
  const baseContext=teacherPageContext;
  teacherPageContext=function(day){
   const location=day===0?'CURRENT PAGE: Start here (before Day 1).':`CURRENT PAGE: Day ${day} — ${lessonNotes[day].name}. This is a lesson, not the Start here setup page. Do not describe it as before Day 1 or ask the learner to choose a preset again.`;
@@ -408,7 +409,7 @@ function installExperience(){
  toggleEveRecording=recordTurn;
  playLiveEve=async function(text,day){cancelVoice();const token=voiceSession.generation;voiceSession.retry=()=>playLiveEve(text,day);updateEveDebug('Eve is preparing speech.',{reply:text,error:''});try{await speakTurn(text,token);}catch(e){if(token===voiceSession.generation)voiceState('error',e.message);}};
  sendLiveEve=(day,message)=>runVoice(day,message,true);
- eveTeachMoment=(day,message)=>runVoice(day,message);
+ eveTeachMoment=(day,message,transition=null)=>runVoice(day,message,false,transition);
  const welcome=maybeWelcomeEve;
  maybeWelcomeEve=()=>{if(!courseResuming&&voiceSession.enabled&&!pendingCheck)return welcome();};
  const start=startAI102;

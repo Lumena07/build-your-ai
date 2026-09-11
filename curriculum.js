@@ -1,7 +1,7 @@
 /* Shared by the lesson page and Eve. These are learning goals, not scores. */
 const courseGuide = {
   intro: {goal:'Choose who your AI will help.', takeaway:'A preset is a ready-made starting idea, not a finished AI.', steps:['Choose one of the six starting ideas.', 'Check its purpose, name and language, then save your blueprint.']},
-  lab1: {goal:'Explain what AI does and why its answers need checking.', takeaway:'AI learns patterns from examples. Your request guides its answer, but it can still be wrong.', steps:['Read your preset question and suggest a helpful opening.', 'Look at the job you have given your AI.', 'Notice how its instructions guide an answer.', 'Add one useful detail to the question, then answer the tiny practice question.']},
+  lab1: {goal:'Explain what AI does and why its answers need checking.', takeaway:'AI learns patterns from examples. Your request guides its answer, but it can still be wrong.', steps:['Discover everyday AI tasks and predict what your assistant might do.', 'Inspect a prepared answer and learn where text AI answers come from.', 'Compare confidence with evidence in a question the assistant cannot know.', 'Choose how to use an AI answer responsibly; optionally explain AI in your own words.']},
   lab2: {goal:'Explain what tokens are and why a text AI uses them.', takeaway:'A token is a piece of text, such as a word, part of a word, or punctuation. A model processes tokens and predicts which token may come next.', steps:['Connect Day 1’s text answers to the pieces a model processes.', 'Investigate whole-word, word-part and punctuation tokens.', 'Change a sentence and observe how its illustrated pieces change.', 'Explain why a token is not always a whole word.']},
   lab3: {goal:'Show what a useful answer looks like.', takeaway:'An example pairs a question with a good answer. Notes are information to look up, not the same as training examples.', steps:['Write one question and an answer that actually helps, then approve it.', 'Add a second useful question and answer.', 'Add a third useful question and answer.', 'Review your three examples. Optionally add trusted notes, then continue.']},
   lab4: {goal:'Choose clear rules for how your AI answers.', takeaway:'Instructions guide an answer. A more creative answer is not necessarily more correct.', steps:['Try the focused-or-creative demonstration.', 'Write one clear behaviour rule and two separate test questions, then save.']},
@@ -35,6 +35,19 @@ const lessonJourney={
  lab6:['A model can produce text. Now extend your assistant with reference information and tools that perform specific jobs.','For your preset, which request needs a source and which needs a calculator? Why?'],
  lab7:['Bring together your preset, examples, instructions, version and tools. Test the whole assistant.','Design a test that could expose a weakness, rather than only show a success.']
 };
+
+// One source of truth for what Eve carries forward at each real course handoff.
+// A transition is used only when the learner actually came from the listed page.
+const lessonTransitions={
+ lab1:{from:'intro',previous:courseGuide.intro.takeaway,connection:lessonJourney.lab1[0],opening:courseGuide.lab1.steps[0]},
+ lab2:{from:'lab1',previous:courseGuide.lab1.takeaway,connection:lessonJourney.lab2[0],opening:courseGuide.lab2.steps[0]},
+ lab3:{from:'lab2',previous:courseGuide.lab2.takeaway,connection:lessonJourney.lab3[0],opening:courseGuide.lab3.steps[0]},
+ lab4:{from:'lab3',previous:courseGuide.lab3.takeaway,connection:lessonJourney.lab4[0],opening:courseGuide.lab4.steps[0]},
+ lab5:{from:'lab4',previous:courseGuide.lab4.takeaway,connection:lessonJourney.lab5[0],opening:courseGuide.lab5.steps[0]},
+ lab6:{from:'lab5',previous:courseGuide.lab5.takeaway,connection:lessonJourney.lab6[0],opening:courseGuide.lab6.steps[0]},
+ lab7:{from:'lab6',previous:courseGuide.lab6.takeaway,connection:lessonJourney.lab7[0],opening:courseGuide.lab7.steps[0]}
+};
+function courseTransition(from,to){const transition=lessonTransitions[to];return transition?.from===from?transition:null;}
 function learningCard(){
   const p=project(),c=learningContext(store.page,p);
   if(!c||!p.guidance.learnerName)return '';

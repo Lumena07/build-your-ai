@@ -109,6 +109,7 @@ async def live():
         learner_name='Anna', preset_title='Business helper', turn_kind='guidance',
         previous_takeaway='AI learns patterns from examples. A request guides its answer, but it can still be wrong.',
         lesson_connection='Day 1 showed a text answer. Now look at the small pieces of text a model works with.',
+        opening_action='Connect Day 1’s text answers to the pieces a model processes.',
     )
     cases.append(('day 1 to day 2 transition', transition, 'none'))
     async def check(label, body, expected):
