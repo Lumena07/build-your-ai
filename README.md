@@ -30,7 +30,9 @@ that response. The key never goes in the website or GitHub.
 
 Activities appear one at a time. Small questions check understanding before completion. **Restart this learner** asks for confirmation and removes only the active project; other saved projects remain. Updates no longer automatically erase learner data.
 
-Run `node test-course.cjs` and `node test-experience.cjs` for course and browser checks. The browser checks use mocked voice responses; they do not establish real microphone, network or voice quality. Live testing with a learner is still needed.
+Run `node test-all.cjs` for the complete verification suite. It checks JavaScript and Python syntax, every lesson page and visible activity, Eve's reply contract, one continuous Eve-guided learner journey through Days 1–7, button and navigation states, saved lesson work, lesson recaps and connections, answered-question isolation, the active Eve service, live OpenAI teaching responses on every day, speech generation, command transcription, and live browser navigation. Keep Eve's teacher service running before starting it. The suite synthesizes and transcribes a test recording; testing a person's physical microphone still requires a learner.
+
+For faster checks that do not call the live OpenAI service, run `node test-course.cjs`, `node test-experience.cjs`, `node test-next-navigation.cjs`, and `gpu-service/api/.teacher-venv/Scripts/python.exe gpu-service/api/test_teacher.py`.
 
 Recorded audio is sent to OpenAI only to transcribe that turn. The site stores
 the written lesson conversation in that browser; it does not put the API key,

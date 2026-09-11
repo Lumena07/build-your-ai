@@ -2,7 +2,7 @@
 const courseGuide = {
   intro: {goal:'Choose who your AI will help.', takeaway:'A preset is a ready-made starting idea, not a finished AI.', steps:['Choose one of the six starting ideas.', 'Check its purpose, name and language, then save your blueprint.']},
   lab1: {goal:'Explain what AI does and why its answers need checking.', takeaway:'AI learns patterns from examples. Your request guides its answer, but it can still be wrong.', steps:['Read your preset question and suggest a helpful opening.', 'Look at the job you have given your AI.', 'Notice how its instructions guide an answer.', 'Add one useful detail to the question, then answer the tiny practice question.']},
-  lab2: {goal:'Recognise that AI handles text in small pieces called tokens.', takeaway:'A token can be a word, part of a word, or punctuation. It is not always a whole word.', steps:['Look at the coloured pieces in your preset question.', 'Keep or edit two questions people might ask your AI, then save them.']},
+  lab2: {goal:'Explain what tokens are and why a text AI uses them.', takeaway:'A token is a piece of text, such as a word, part of a word, or punctuation. A model processes tokens and predicts which token may come next.', steps:['Connect Day 1’s text answers to the pieces a model processes.', 'Investigate whole-word, word-part and punctuation tokens.', 'Change a sentence and observe how its illustrated pieces change.', 'Explain why a token is not always a whole word.']},
   lab3: {goal:'Show what a useful answer looks like.', takeaway:'An example pairs a question with a good answer. Notes are information to look up, not the same as training examples.', steps:['Write one question and an answer that actually helps, then approve it.', 'Add a second useful question and answer.', 'Add a third useful question and answer.', 'Review your three examples. Optionally add trusted notes, then continue.']},
   lab4: {goal:'Choose clear rules for how your AI answers.', takeaway:'Instructions guide an answer. A more creative answer is not necessarily more correct.', steps:['Try the focused-or-creative demonstration.', 'Write one clear behaviour rule and two separate test questions, then save.']},
   lab5: {goal:'Understand a model version and compare answers fairly.', takeaway:'A model is the learned pattern system. This local practice version does not train a new neural network.', steps:['Prepare three approved examples in Day 3.', 'Create a practice version, or start training if your GPU service is connected.', 'Compare both answers to the same question. Decide which helps and why.']},
@@ -19,7 +19,8 @@ function learningContext(page,p){
   if(page==='lab3')step=Math.min(3,p.examples.length);
   if(page==='lab5')step=p.model?2:p.examples.length>=3?1:0;
   if(page==='lab7')step=p.model?1:0;
-  if(['lab2','lab4','lab6'].includes(page))step=Math.min(1,p.guidance.lessonSteps?.[page]||0);
+  if(page==='lab2')step=Math.max(0,Math.min(3,(p.guidance.day2Step||1)-1));
+  if(['lab4','lab6'].includes(page))step=Math.min(1,p.guidance.lessonSteps?.[page]||0);
   if(page==='lab7'&&p.guidance.lessonSteps?.lab7)step=2;
   return {...lesson,step,next:lesson.steps[step]};
 }
@@ -38,6 +39,7 @@ function learningCard(){
   const p=project(),c=learningContext(store.page,p);
   if(!c||!p.guidance.learnerName)return '';
   const journey=lessonJourney[store.page];
+  if(store.page==='lab1')return `<section class="card" aria-label="Today’s learning goal"><b>Today’s goal</b><p>${esc(c.goal)}</p></section>`;
   return `<section class="card" aria-label="Today’s learning goal"><p>${esc(journey[0])}</p><b>Today’s goal</b><p>${esc(c.goal)}</p><details><summary>Go deeper with Eve</summary><p>${esc(journey[1])}</p><button class="button secondary" onclick="challengeWithEve()">Explore this challenge</button></details></section>`;
 }
 function challengeWithEve(){const page=store.page;eveTeachMoment(labDay(page)||0,`The learner requested a harder challenge: ${lessonJourney[page][1]}. Ask for their reasoning using the selected preset. Wait for their attempt before giving an answer. Keep the explanation short but intellectually meaningful.`);}
@@ -46,7 +48,7 @@ function teacherPageContext(day){
   const p=project(),page=day===0?'intro':`lab${day}`,c=learningContext(page,p);
   if(!c)return '';
   const fields=['human-guess','prediction-input','token-text','sample1','sample2','ex-in','ex-out','behavior','eval1','eval2','purpose','name'];
-  const values=fields.flatMap(id=>{const el=document.getElementById(id);return el?.value?[`${id}: ${el.value.slice(0,180)}`]:[];});
+  const values=fields.flatMap(id=>{const el=document.getElementById(id);return el?.value&&!el.closest('[hidden]')?[`${id}: ${el.value.slice(0,180)}`]:[];});
   return `Learning goal: ${c.goal}\nCurrent step ${c.step+1}: ${c.next}\nRemember: ${c.takeaway}\nApproved examples: ${p.examples.length}. Version ready: ${Boolean(p.model)}. Enabled tools: ${Object.keys(p.tools).filter(k=>p.tools[k]).join(', ')}.\nCurrent visible work (learner data): ${values.join(' | ')}\nTeach this step only. Acknowledge the learner's actual answer. If confused, use a simpler example from their chosen preset; ask about an interest only if needed. Never assign a fixed learning style or claim understanding without evidence. Invite one specific action on the current page. Speaking to Eve does not itself save fields or click buttons. Local previews are demonstrations, not evidence of real training. Keep speech to two or three short sentences, under 85 words.`;
 }
 
