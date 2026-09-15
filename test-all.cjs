@@ -50,6 +50,8 @@ async function health(){
  run('Course structure and all lesson rendering',process.execPath,['test-course.cjs']);
  run('Eve reply contract unit tests',python,['test_teacher.py'],api);
  run('Complete learner browser journey',process.execPath,['test-experience.cjs']);
+ run('Typed name onboarding and saved-state failures',process.execPath,['test-typed-name.cjs']);
+ run('Three agent templates and saved-project compatibility',process.execPath,['test-three-presets.cjs']);
  run('Navigation and button states with mocked Eve',process.execPath,['test-next-navigation.cjs']);
  run('Day 1 recap and Day 2 connection with mocked Eve',process.execPath,['test-lesson-transition.cjs']);
  run('Interactive Day 2 token journey with mocked Eve',process.execPath,['test-day2-journey.cjs']);

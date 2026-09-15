@@ -50,12 +50,12 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>{const p=project();p.completed.push('lab2');save();});
 
   // Day 3: create, review and store examples, then distinguish knowledge.
-  turn=await goDay(3);assertTurn(turn,'Examples',/Add a training example/i,/Knowledge library/i);assertHandoff(turn,'Day 2 to Day 3');
+  turn=await goDay(3);assertTurn(turn,'Examples',/Add an answer example/i,/Knowledge library/i);assertHandoff(turn,'Day 2 to Day 3');
   for(let index=1;index<=3;index++){
    await page.locator('#ex-in').fill(`Business question ${index}`);await page.locator('#ex-out').fill(`Useful answer ${index}`);
-   const before=turns.length;await page.getByRole('button',{name:'Approve example'}).click();turn=await waitTurn(before,`Day 3 example ${index}`);assertTurn(turn,'Examples',/Add a training example/i,/Knowledge library/i);
+   const before=turns.length;await page.getByRole('button',{name:'Approve example'}).click();turn=await waitTurn(before,`Day 3 example ${index}`);assertTurn(turn,'Examples',/Add an answer example/i,/Knowledge library/i);
   }
-  let before=turns.length;await page.getByRole('button',{name:'Next activity',exact:true}).click();turn=await waitTurn(before,'Day 3 review');assertTurn(turn,'Examples',/Your approved examples/i,/Add a training example/i);
+  let before=turns.length;await page.getByRole('button',{name:'Next activity',exact:true}).click();turn=await waitTurn(before,'Day 3 review');assertTurn(turn,'Examples',/Your approved examples/i,/Add an answer example/i);
   before=turns.length;await page.getByRole('button',{name:'Next activity',exact:true}).click();turn=await waitTurn(before,'Day 3 knowledge');assertTurn(turn,'Examples',/Knowledge library/i,/Your approved examples/i);
   await page.locator('#source-title').fill('Business notes');await page.locator('#source-content').fill('Record income and expenses every day.');await page.getByRole('button',{name:'Add source'}).click();
   before=turns.length;await page.getByRole('button',{name:'Continue to behaviour →'}).click();await page.getByRole('button',{name:'A question paired with a clear, relevant answer'}).click();
@@ -72,11 +72,42 @@ const assert=require('node:assert/strict');
   assert.equal(await page.evaluate(()=>store.page),'lab5');
 
   // Day 5: pass the understanding gate, create a version and open comparison.
-  turn=await waitLesson('Your model',before,'Day 5 opening');assertTurn(turn,'Your model',/Approved examples|Create BusinessHelper/i,/Before \/ after evaluation/i);assertHandoff(turn,'Day 4 to Day 5');
-  await page.getByRole('button',{name:/Create BusinessHelper-1/}).click();await page.getByRole('button',{name:'Comparing answers to the same separate test question'}).click();
+  turn=await waitLesson('Agent configuration',before,'Day 5 opening');assertTurn(turn,'Agent configuration',/Approved examples|Save BusinessHelper/i,/Compare agent answers/i);assertHandoff(turn,'Day 4 to Day 5');
+  await page.getByRole('heading',{name:'Bring your agent together.'}).waitFor();
+  assert.match(turn.body.lesson_summary,/Assemble the agent/);
+  assert.doesNotMatch(await page.locator('main').innerText(),/GPU|LoRA|adapter|dataset|training progress|model creation/i);
+  await page.evaluate(()=>{
+   if(window.BuildAICloud.startTraining||window.BuildAICloud.trainingStatus)throw Error('Training bridge still exposed');
+   window.trainingCalls=0;window.BUILD_AI_CONFIG.gpuEnabled=true;
+   window.BuildAICloud.startTraining=()=>{window.trainingCalls++;throw Error('Training must never be called');};
+   window.BuildAICloud.trainingStatus=()=>{window.trainingCalls++;throw Error('Training must never be polled');};
+   project().training={id:'legacy-job',status:'QUEUED'};save();
+   saveEveTurn(5,'eve','An old model-training explanation.');
+   project().guidance.eveHistory.at(-1).pageContextVersion=2;
+   if(evePayload(5,'What next?').recent_turns.some(turn=>turn.text.includes('old model-training')))throw Error('Old training dialogue reused');
+  });
+  await page.getByRole('button',{name:/Save BusinessHelper-1/}).click();await page.getByRole('button',{name:'Comparing answers to the same separate test question'}).click();
   assert.equal(await page.evaluate(()=>Boolean(project().model)),true);
-  before=turns.length;await page.getByRole('button',{name:'Next activity',exact:true}).click();turn=await waitTurn(before,'Day 5 comparison');assertTurn(turn,'Your model',/Before \/ after evaluation/i,/Create a new version/i);
-  before=turns.length;await page.getByRole('button',{name:'Give your model tools →'}).click();assert.equal(await page.evaluate(()=>store.page),'lab6');
+  assert.equal(await page.evaluate(()=>window.trainingCalls),0);
+  assert.equal(await page.evaluate(()=>project().model.kind),'agent-configuration');
+  assert.equal(await page.evaluate(()=>project().model.configuration.behavior),'Use two short sentences and one practical example.');
+  assert.equal(await page.evaluate(()=>project().model.configuration.examples.length),3);
+  assert.equal(await page.evaluate(()=>project().model.configuration.knowledge.length),1);
+  assert.equal(await page.evaluate(()=>project().training.id),'legacy-job','Do not cancel existing external jobs or erase learner data');
+  const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem(KEY)).projects.find(p=>p.id===store.active));
+  assert.equal(persisted.model.kind,'agent-configuration');
+  assert.equal(persisted.guidance.learnerName,'Anna');
+  await page.evaluate(()=>{window.BUILD_AI_CONFIG.gpuEnabled=false;});
+  await page.reload();
+  await page.getByRole('button',{name:'Resume with Eve'}).waitFor();
+  await page.evaluate(()=>{speakTurn=async()=>{};});
+  await page.getByRole('button',{name:'Resume with Eve'}).click();
+  await page.getByRole('heading',{name:'Bring your agent together.'}).waitFor();
+  assert.equal(await page.evaluate(()=>project().model.kind),'agent-configuration');
+  assert.equal(await page.evaluate(()=>project().model.configuration.examples.length),3);
+  assert.equal(await page.evaluate(()=>project().training.id),'legacy-job');
+  before=turns.length;await page.getByRole('button',{name:'Next activity',exact:true}).click();turn=await waitTurn(before,'Day 5 comparison');assertTurn(turn,'Agent configuration',/Compare agent answers/i,/Save a new agent version/i);
+  before=turns.length;await page.getByRole('button',{name:'Give your agent tools →'}).click();assert.equal(await page.evaluate(()=>store.page),'lab6');
 
   // Day 6: enable a real visible tool choice, inspect its trace and continue.
   turn=await waitLesson('Tools',before,'Day 6 opening');assertTurn(turn,'Tools',/Calculator|Knowledge search/i,/Tool trace preview/i);assertHandoff(turn,'Day 5 to Day 6');
@@ -91,8 +122,9 @@ const assert=require('node:assert/strict');
    before=turns.length;await page.getByRole('button',{name:'Try this question'}).click();turn=await waitTurn(before,'Day 7 trial');assert.equal(turn.body.lesson,'Launch');assert.deepEqual(turn.body.recent_turns,[]);
    await page.getByRole('button',{name:'I checked this answer'}).click();
   }
-  await page.getByRole('button',{name:'Finish and save my assistant'}).click();await page.getByRole('button',{name:'Admit the limit and ask for a reliable source'}).click();
+  await page.getByRole('button',{name:'Finish and save my agent'}).click();await page.getByRole('button',{name:'Admit the limit and ask for a reliable source'}).click();
   assert.equal(await page.evaluate(()=>store.page),'dashboard');
+  await page.getByRole('heading',{name:'Your AI agent workshop.'}).waitFor();
   const saved=await page.evaluate(()=>({completed:project().completed,examples:project().examples.length,knowledge:project().knowledge.length,calculator:project().tools.calculator,tests:project().guidance.launchTests}));
   for(const lesson of ['lab1','lab2','lab3','lab4','lab5','lab6','lab7'])assert.ok(saved.completed.includes(lesson),`${lesson} was not saved as complete`);
   assert.equal(saved.examples,3);assert.equal(saved.knowledge,1);assert.equal(saved.calculator,true);assert.deepEqual(saved.tests,{normal:true,difficult:true,tool:true});

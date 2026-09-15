@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 
 const lessonPattern={
  1:/AI|pattern|program/i,2:/token/i,3:/example|question|answer/i,
- 4:/behavio|rule|focused|creative|temperature/i,5:/model|version|example|create/i,
+ 4:/behavio|rule|focused|creative|temperature/i,5:/agent|configuration|save|version|example/i,
  6:/tool|calculator|knowledge|notes|task/i,7:/test|question|answer/i,
 };
 function similarity(a,b){
@@ -35,9 +35,9 @@ function similarity(a,b){
     const text={
      'What is AI?':'AI learns patterns but not every program uses AI. Answer the one question shown.',
      Tokens:'Tokens are pieces of text. Predict the split and reveal the token pieces.',
-     Examples:'A training example pairs a useful question with its ideal answer. Work on the visible example.',
+     Examples:'An answer example pairs a useful question with its ideal answer. Work on the visible example.',
      Behaviour:'Behaviour rules describe how the assistant should answer. Try the visible control.',
-     'Your model':'A model version combines the prepared examples for a fair comparison. Use the visible creation step.',
+     'Agent configuration':'An agent configuration brings together its job, instructions, examples and reference information. Save and compare the agent configuration.',
      Tools:'A tool performs a specific job such as calculation. Choose from the visible tools.',
      Launch:'Test the assistant with the one visible question and check its answer.',
     }[body.lesson]||'Continue with the current activity.';
@@ -58,7 +58,7 @@ function similarity(a,b){
    assert.ok(requests.length>before,`Day ${day} did not request Eve guidance`);
    for(let i=0;i<2400&&replies.length===beforeReply;i++)await new Promise(resolve=>setTimeout(resolve,25));
    assert.ok(replies.length>beforeReply,`Day ${day} did not receive Eve guidance`);
-   const item=replies.at(-1);assert.equal(item.body.lesson,{1:'What is AI?',2:'Tokens',3:'Examples',4:'Behaviour',5:'Your model',6:'Tools',7:'Launch'}[day]);
+   const item=replies.at(-1);assert.equal(item.body.lesson,{1:'What is AI?',2:'Tokens',3:'Examples',4:'Behaviour',5:'Agent configuration',6:'Tools',7:'Launch'}[day]);
    assert.match(item.reply.text,lessonPattern[day],`Eve's Day ${day} reply did not match its topic: ${item.reply.text}`);
    assert.deepEqual(item.body.recent_turns,[],`Day ${day} automatic guidance reused an answered question`);
    assert.ok(item.body.previous_takeaway,`Day ${day} received no previous lesson takeaway`);
@@ -71,6 +71,7 @@ function similarity(a,b){
    const pageText=await page.locator('main').innerText();
    assert.match(pageText,lessonPattern[day]);
    assert.doesNotMatch(item.reply.text,/visible activity|current page|lesson summary/i);
+   if(day===3||day===5)assert.doesNotMatch(item.reply.text,/LoRA|GPU|adapter|train your model|start.{0,20}training/i,'Eve must teach agent configuration, not a training workflow');
   }
 
   if(!live){
@@ -88,9 +89,9 @@ function similarity(a,b){
 
   if(!live){
    const checks={
-    3:[['Add a training example','Your approved examples'],['Your approved examples','Knowledge library'],['Knowledge library','Add a training example']],
+    3:[['Add an answer example','Your approved examples'],['Your approved examples','Knowledge library'],['Knowledge library','Add an answer example']],
     4:[['Focused or creative?','Write the behaviour rules'],['Write the behaviour rules','Questions to test it with'],['Questions to test it with','Focused or creative?']],
-    5:[['Approved examples','What happens when you create it?'],['Before / after evaluation','Create BusinessHelper']],
+    5:[['Approved examples','What goes into your agent?'],['Compare agent answers','Save BusinessHelper']],
     6:[['Calculator','Tool trace preview'],['Tool trace preview','Knowledge search']],
    };
    for(const [day,activities] of Object.entries(checks)){
@@ -115,7 +116,7 @@ function similarity(a,b){
   assert.equal(nonLinear.body.lesson_connection,'','A non-linear lesson choice received a false course handoff');
   assert.equal(nonLinear.body.opening_action,'','A non-linear lesson choice received a false previous-day action');
   const beforeQuestion=replies.length;
-  await page.evaluate(()=>runVoice(3,'Why does a training example need an answer?',true));
+  await page.evaluate(()=>runVoice(3,'Why does an answer example need an answer?',true));
   for(let i=0;i<800&&replies.length===beforeQuestion;i++)await new Promise(resolve=>setTimeout(resolve,25));
   const answered=replies.at(-1).reply.text;
   const day4=await openDay(4);

@@ -19,14 +19,6 @@ window.BuildAICloud = (() => {
   };
   return {
     enabled: () => Boolean(base()) && window.BUILD_AI_CONFIG?.gpuEnabled === true,
-    startTraining: (project) => request('/v1/training-jobs', {
-      method: 'POST', body: JSON.stringify({
-        project_id: project.id, model_name: project.name, base_model: project.baseModel,
-        examples: project.examples, evaluation_prompts: project.evaluation,
-        behavior: project.behavior, languages: project.languages,
-      }),
-    }),
-    trainingStatus: (jobId) => request(`/v1/training-jobs/${encodeURIComponent(jobId)}`),
     chat: (project, message) => request('/v1/generate', {
       method: 'POST', body: JSON.stringify({
         project_id: project.id, adapter_key: project.model?.adapterKey,

@@ -1,0 +1,94 @@
+import assets from './assets.js';
+import prompt from './instructions.js';
+const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
+const fail=(status,detail)=>{throw Object.assign(new Error(detail),{status});};
+const encoded=bytes=>{let text='';for(let i=0;i<bytes.length;i+=8192)text+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(text);};
+const decode=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
+const greetings=/^(hi\b|hello\b|hey\b|welcome\b|nice to meet you\b|my name is eve\b|i am eve\b|i'm eve\b)/i;
+export function teachingBody(body){
+ if(!body||typeof body!=='object'||Array.isArray(body))fail(400,'Invalid teaching request.');
+ for(const key of ['lesson','lesson_summary','learner_message'])if(typeof body[key]!=='string'||!body[key].trim()||body[key].length>2000)fail(400,'Missing or too-long teaching text.');
+ for(const [key,value] of Object.entries(body)){if(typeof value==='string'&&value.length>2000)fail(400,'Teaching context is too long.');}
+ if(!['guidance','answer','conversation'].includes(body.turn_kind))fail(400,'Invalid teaching turn.');
+ if(body.recent_turns&&!Array.isArray(body.recent_turns))fail(400,'Invalid conversation context.');
+ if((body.recent_turns||[]).length>12)fail(400,'Conversation context is too long.');
+ for(const key of ['available_presets','preset_examples'])if(body[key]&&(!Array.isArray(body[key])||body[key].length>6||body[key].some(x=>typeof x!=='string'||x.length>2000)))fail(400,'Invalid preset context.');
+ for(const turn of body.recent_turns||[])if(!['eve','learner'].includes(turn.role)||typeof turn.text!=='string'||turn.text.length>2000)fail(400,'Invalid conversation turn.');
+ return body;
+}
+export function teachingPrompt(body){
+ const greeted=body.has_greeted===true||(body.recent_turns||[]).some(x=>x.role==='eve');
+ let result=prompt.replace(/__([a-z_]+)__/g,(_,key)=>key==='greeting_rule'?(greeted?'This learner has already been welcomed. Do not greet or introduce yourself. Continue directly, including after resume and mission changes.':'Only the first Mission Briefing reply may greet the learner once. Other mission replies continue directly.'):(typeof body[key]==='string'?body[key]:'Not provided.'));
+ if(['mission briefing','start here'].includes(body.lesson.toLowerCase()))result+='\nThis is before Mission 1. Help only with choosing one listed preset or naming it. Available choices: '+(body.available_presets||[]).slice(0,3).join(' | ')+'. Never invent a different preset.';
+ result+='\nPreset example questions: '+(body.preset_examples||[]).slice(0,3).join(' | ');
+ return result;
+}
+export function checkedReply(data,body){
+ let raw=data.output_text;if(!raw)raw=(data.output||[]).filter(x=>x.type==='message').flatMap(x=>x.content||[]).filter(x=>x.type==='output_text').map(x=>x.text).join('');
+ let reply;try{reply=JSON.parse(raw);}catch{return null;}
+ const text=reply?.text?.trim(),assessment=reply?.assessment;
+ if(!text||text.length>1200||text.split(/\s+/).length>65)return null;
+ if(!['correct','not_yet','unclear','none'].includes(assessment))return null;
+ if(body.turn_kind==='answer'?assessment==='none':assessment!=='none')return null;
+ const questions=(text.match(/[?？]/g)||[]).length;if(questions>1||(body.turn_kind==='answer'&&['correct','not_yet'].includes(assessment)&&questions))return null;
+ if(/visible activit|current page|current step|private teaching|lesson summary|learner_message|assessment|I see no previous|part\s+\d+\s+of\s+\d+|^\s*[#*]|\n\s*[-*]/i.test(text))return null;
+ if((body.has_greeted||(body.recent_turns||[]).some(x=>x.role==='eve'))&&greetings.test(text))return null;
+ return {text,assessment};
+}
+async function reserve(env,user){
+ if(!env.DB)fail(503,'Eve’s usage protection is not ready.');
+ const now=new Date(),day=now.toISOString().slice(0,10),minute=now.toISOString().slice(0,16);
+ const counters=[['course:'+day,600],['student:'+user+':'+day,180],['minute:'+user+':'+minute,20]];
+ const statements=counters.map(([id,max])=>env.DB.prepare('INSERT INTO eve_usage (id,calls) VALUES (?,1) ON CONFLICT(id) DO UPDATE SET calls=calls+1 WHERE calls<?').bind(id,max));
+ const results=await env.DB.batch(statements);if(results.some(x=>x.meta.changes!==1))fail(429,'Eve’s usage limit has been reached. Continue with the written lesson and try again later.');
+}
+async function openai(env,path,options){
+ const response=await fetch('https://api.openai.com/v1/'+path,{...options,signal:AbortSignal.timeout(45000),headers:{authorization:'Bearer '+env.OPENAI_API_KEY,...options.headers}});
+ if(!response.ok)fail(502,'Eve could not complete this turn. Please try again.');return response;
+}
+async function respond(request,env){
+ const body=teachingBody(await request.json()),instructions=teachingPrompt(body);
+ const history=(body.recent_turns||[]).slice(-8).map(t=>t.role.toUpperCase()+': '+t.text).join('\n');
+ const input='Conversation for this activity:\n'+history+'\n'+(body.turn_kind==='guidance'?'PRIVATE TEACHING EVENT: ':'LEARNER NOW: ')+body.learner_message;
+ const assessments=body.turn_kind==='answer'?['correct','not_yet','unclear']:['none'];
+ for(let i=0;i<2;i++){
+  const result=await openai(env,'responses',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model:'gpt-5-mini',instructions,input:input+(i?'\nReturn a clear reply within the output contract. Do not greet again.':''),store:false,reasoning:{effort:'minimal'},max_output_tokens:650,text:{format:{type:'json_schema',name:'eve_reply',strict:true,schema:{type:'object',additionalProperties:false,properties:{text:{type:'string'},assessment:{type:'string',enum:assessments}},required:['text','assessment']}}}})});
+  const reply=checkedReply(await result.json(),body);if(reply)return json(reply);
+ }
+ fail(502,'Eve could not prepare a clear reply. Please try again.');
+}
+async function speech(request,env){
+ const {text}=await request.json();if(typeof text!=='string'||!text.trim()||text.length>1200||text.split(/\s+/).length>85)fail(400,'Speech text is missing or too long.');
+ const response=await openai(env,'audio/speech',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model:'gpt-4o-mini-tts',voice:'marin',input:text,response_format:'mp3'})});
+ return json({audio_base64:encoded(new Uint8Array(await response.arrayBuffer())),mime_type:'audio/mpeg'});
+}
+async function transcribe(request,env){
+ const form=await request.formData(),audio=form.get('audio');if(!audio||typeof audio==='string'||!audio.size||audio.size>3_000_000)fail(400,'Use a short recording under 3 MB.');
+ const upload=new FormData();upload.append('file',audio,'learner.webm');upload.append('model','gpt-4o-mini-transcribe');upload.append('language','en');
+ const response=await openai(env,'audio/transcriptions',{method:'POST',body:upload});const data=await response.json();if(typeof data.text!=='string'||!data.text.trim())fail(502,'Eve did not hear any words. Try again.');return json({text:data.text.slice(0,2000)});
+}
+export default {async fetch(request,env){try{
+ const url=new URL(request.url),user=request.headers.get('oai-authenticated-user-id');
+ // Sites custom sharing policy admits only the owner and email-invited students.
+ if(!user){if(url.pathname.startsWith('/v1/')||url.pathname.startsWith('/api/')||url.pathname==='/health')return json({detail:'Sign in with an invited account to continue.'},401);return Response.redirect(url.origin+'/signin-with-chatgpt?return_to='+encodeURIComponent(url.pathname+url.search),302);}
+ if(url.pathname==='/runtime-config.js')return new Response('window.BUILD_AI_CONFIG='+JSON.stringify({apiBaseUrl:url.origin,learnerStorageKey:user,gpuEnabled:false})+';',{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'}});
+ if(url.pathname==='/health')return json({teacher_ready:Boolean(env.OPENAI_API_KEY&&env.DB),online:true});
+ if(url.pathname==='/api/account')return json({signed_in:true,email:request.headers.get('oai-authenticated-user-email')||''});
+ if(url.pathname.startsWith('/v1/teacher/')){
+  if(request.method!=='POST')return json({detail:'Use a teaching request.'},405);
+  if(!['/v1/teacher/respond','/v1/teacher/speech','/v1/teacher/transcribe'].includes(url.pathname))return json({detail:'Not found.'},404);
+  if(request.headers.get('origin')&&request.headers.get('origin')!==url.origin)return json({detail:'Use the course page for Eve.'},403);
+  if(Number(request.headers.get('content-length')||0)>3_100_000)return json({detail:'Recording is too large.'},413);
+  if(!env.OPENAI_API_KEY)fail(503,'Eve’s online connection is not configured yet.');
+  // Bound the actual body too: chunked uploads may have no Content-Length.
+  const reader=request.body?.getReader(),chunks=[];let size=0;
+  if(reader)while(true){const item=await reader.read();if(item.done)break;size+=item.value.length;if(size>3_100_000){await reader.cancel();return json({detail:'Recording is too large.'},413);}chunks.push(item.value);}
+  const body=new Uint8Array(size);let offset=0;for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.length;}
+  request=new Request(request.url,{method:request.method,headers:request.headers,body});
+  await reserve(env,user);
+  return url.pathname.endsWith('/respond')?await respond(request,env):url.pathname.endsWith('/speech')?await speech(request,env):await transcribe(request,env);
+ }
+ if(request.method!=='GET'&&request.method!=='HEAD')return json({detail:'Method not allowed.'},405);
+ const asset=assets[url.pathname==='/'?'/index.html':url.pathname];if(!asset)return json({detail:'Not found.'},404);
+ return new Response(request.method==='HEAD'?null:decode(asset.data),{headers:{'content-type':asset.type,'cache-control':'private, no-store','x-content-type-options':'nosniff','referrer-policy':'same-origin'}});
+}catch(error){return json({detail:error.status?error.message:'The course service is temporarily unavailable. Please try again.'},error.status||503);}}};

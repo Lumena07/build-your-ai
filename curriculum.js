@@ -1,13 +1,14 @@
 /* Shared by the lesson page and Eve. These are learning goals, not scores. */
+const courseMission='AI 102 teaches beginners how to create AI agents using an existing model, instructions, examples, reference information and tools for a clear job. There is no model-training activity in this course. Teach how to assemble, save and test an agent, not how to train or adapt a model. Local practice demonstrates the components; live generated answers need a connected existing-model service.';
 const courseGuide = {
-  intro: {goal:'Choose who your AI will help.', takeaway:'A preset is a ready-made starting idea, not a finished AI.', steps:['Choose one of the six starting ideas.', 'Check its purpose, name and language, then save your blueprint.']},
+  intro: {goal:'Choose the job your AI agent will do.', takeaway:'A preset is a ready-made starting idea, not a finished AI agent.', steps:['Choose one of the three starting ideas.', 'Check its purpose and name, then save your blueprint. All agents use English.']},
   lab1: {goal:'Explain what AI does and why its answers need checking.', takeaway:'AI learns patterns from examples. Your request guides its answer, but it can still be wrong.', steps:['Discover everyday AI tasks and predict what your assistant might do.', 'Inspect a prepared answer and learn where text AI answers come from.', 'Compare confidence with evidence in a question the assistant cannot know.', 'Choose how to use an AI answer responsibly; optionally explain AI in your own words.']},
-  lab2: {goal:'Explain what tokens are and why a text AI uses them.', takeaway:'A token is a piece of text, such as a word, part of a word, or punctuation. A model processes tokens and predicts which token may come next.', steps:['Connect Day 1’s text answers to the pieces a model processes.', 'Investigate whole-word, word-part and punctuation tokens.', 'Change a sentence and observe how its illustrated pieces change.', 'Explain why a token is not always a whole word.']},
-  lab3: {goal:'Show what a useful answer looks like.', takeaway:'An example pairs a question with a good answer. Notes are information to look up, not the same as training examples.', steps:['Write one question and an answer that actually helps, then approve it.', 'Add a second useful question and answer.', 'Add a third useful question and answer.', 'Review your three examples. Optionally add trusted notes, then continue.']},
-  lab4: {goal:'Choose clear rules for how your AI answers.', takeaway:'Instructions guide an answer. A more creative answer is not necessarily more correct.', steps:['Try the focused-or-creative demonstration.', 'Write one clear behaviour rule and two separate test questions, then save.']},
-  lab5: {goal:'Understand a model version and compare answers fairly.', takeaway:'A model is the learned pattern system. This local practice version does not train a new neural network.', steps:['Prepare three approved examples in Day 3.', 'Create a practice version, or start training if your GPU service is connected.', 'Compare both answers to the same question. Decide which helps and why.']},
-  lab6: {goal:'Understand how a tool lets an AI carry out a specific job.', takeaway:'A calculator computes an answer; a language model alone predicts text. Check what tool was actually used.', steps:['Choose a tool your AI needs. Start with Calculator.', 'Read the calculator example, then save your tools.']},
-  lab7: {goal:'Test your assistant and recognise its limits.', takeaway:'Your assistant combines a model, instructions, notes and tools. Test it before relying on it.', steps:['Create a version in Day 5 first.', 'Ask one preset question in the playground.', 'Try a tool question and one question it may not know. Check the answers before launching.']}
+  lab2: {goal:'Explain what tokens are and why a text AI uses them.', takeaway:'A token is a piece of text, such as a word, part of a word, or punctuation. A model processes tokens and predicts which token may come next.', steps:['Connect Mission 1’s text answers to the pieces a model processes.', 'Investigate whole-word, word-part and punctuation tokens.', 'Change a sentence and observe how its illustrated pieces change.', 'Explain why a token is not always a whole word.']},
+  lab3: {goal:'Explain how suggested examples guide an agent’s answers.', takeaway:'A request paired with a useful response shows how the agent should answer. Examples guide behaviour; they do not guarantee correctness or teach every fact.', steps:['Explore the suggested useful-answer example.', 'Explore the suggested honest-limit example.', 'Explore the suggested focused-answer example, then try the small understanding check.']},
+  lab4: {goal:'Explain how temperature changes variety and how instructions guide an agent.', takeaway:'Temperature changes variety, not guaranteed accuracy or intelligence. Instructions set how the agent should help.', steps:['Read the temperature explanation and compare lower and higher settings.', 'Read the preset instructions and complete the small temperature check. No writing required.']},
+  lab5: {goal:'Assemble and save your agent configuration, then explain how its parts work together.', takeaway:'An agent configuration brings together its job, instructions, examples and reference information around an existing AI. Saving a configuration does not change the model.', steps:['Review the job, instructions and three example exercises you prepared.', 'Assemble one agent setup, then explore how its parts guide one request.', 'Explore the job, instruction and saved example for one request, then continue to tools.']},
+  lab6: {goal:'Explain why the chosen agent needs its suggested tool and inspect a real local action.', takeaway:'A tool performs a specific action and returns a result. It does not guarantee every answer is correct.', steps:['Understand the preset task and its recommended tool: biology knowledge search, business calculator or coach task list.', 'Enable the suggested tool, run the task, inspect the actual result and complete the understanding check.']},
+  lab7: {goal:'Test your whole AI agent, inspect its actions and recognise its limits.', takeaway:'Your AI agent combines a model, instructions, notes and tools. Test its answers and actual tool actions before relying on it.', steps:['Prepare a practice configuration or connected setup in Mission 5 first.', 'Ask one preset question in the playground.', 'Try a tool question and one question it may not know. Check the answers before saving your agent.']}
 };
 
 function learningContext(page,p){
@@ -26,14 +27,14 @@ function learningContext(page,p){
 }
 
 const lessonJourney={
- intro:['Your journey: turn one starting idea into an assistant you can explain and test.','What would make this assistant worth using?'],
- lab1:['Start here gave your assistant a purpose. First, discover what AI actually is.','Could a fluent answer still be wrong? Give a realistic example.'],
- lab2:['Day 1 showed a text answer. Now look at the small pieces of text a model works with.','Why might two sentences with the same number of words use different numbers of tokens?'],
- lab3:['Day 2 explored text pieces. Now show the kind of complete answer you want those pieces to form.','Could an example be well written but teach the wrong thing? Explain how.'],
- lab4:['Day 3 showed good answers through examples. Now describe their shared qualities as clear instructions.','Write two rules that conflict. How would you resolve the conflict?'],
- lab5:['You have examples and instructions. Now distinguish guiding an existing model from adapting it, and compare a version fairly.','Why is testing only the questions used in your examples a weak test?'],
+ intro:['Your journey: build an AI agent with a clear job, helpful answers and tools you can test.','What would make this agent worth using?'],
+ lab1:['Mission Briefing gave your assistant a purpose. First, discover what AI actually is.','Could a fluent answer still be wrong? Give a realistic example.'],
+ lab2:['Mission 1 showed a text answer. Now look at the small pieces of text a model works with.','Why might two sentences with the same number of words use different numbers of tokens?'],
+ lab3:['Mission 2 explored text pieces. Now show the kind of complete answer you want those pieces to form.','Could an example be well written but teach the wrong thing? Explain how.'],
+ lab4:['Mission 3 showed good answers through examples. Now describe their shared qualities as clear instructions.','Write two rules that conflict. How would you resolve the conflict?'],
+ lab5:['You have a job, examples, instructions and information. Bring them together as a saved agent configuration and explore how the parts guide one request.','Why is testing only the questions used in your examples a weak test?'],
  lab6:['A model can produce text. Now extend your assistant with reference information and tools that perform specific jobs.','For your preset, which request needs a source and which needs a calculator? Why?'],
- lab7:['Bring together your preset, examples, instructions, version and tools. Test the whole assistant.','Design a test that could expose a weakness, rather than only show a success.']
+ lab7:['Bring together your preset, examples, instructions, setup and tools. Test the whole AI agent.','Design a test that could expose a weakness, rather than only show a success.']
 };
 
 // One source of truth for what Eve carries forward at each real course handoff.
@@ -50,12 +51,11 @@ const lessonTransitions={
 function courseTransition(from,to){const transition=lessonTransitions[to];return transition?.from===from?transition:null;}
 function learningCard(){
   const p=project(),c=learningContext(store.page,p);
-  if(!c||!p.guidance.learnerName)return '';
+  if(!c||!p.guidance.learnerName||store.page==='intro')return '';
   const journey=lessonJourney[store.page];
   if(store.page==='lab1')return `<section class="card" aria-label="Today’s learning goal"><b>Today’s goal</b><p>${esc(c.goal)}</p></section>`;
-  return `<section class="card" aria-label="Today’s learning goal"><p>${esc(journey[0])}</p><b>Today’s goal</b><p>${esc(c.goal)}</p><details><summary>Go deeper with Eve</summary><p>${esc(journey[1])}</p><button class="button secondary" onclick="challengeWithEve()">Explore this challenge</button></details></section>`;
+  return `<section class="card" aria-label="Today’s learning goal"><p>${esc(journey[0])}</p><b>Today’s goal</b><p>${esc(c.goal)}</p></section>`;
 }
-function challengeWithEve(){const page=store.page;eveTeachMoment(labDay(page)||0,`The learner requested a harder challenge: ${lessonJourney[page][1]}. Ask for their reasoning using the selected preset. Wait for their attempt before giving an answer. Keep the explanation short but intellectually meaningful.`);}
 
 function teacherPageContext(day){
   const p=project(),page=day===0?'intro':`lab${day}`,c=learningContext(page,p);
@@ -74,7 +74,7 @@ function installLearningEvents(){
   const originalCreate=createModel;
   createModel=async function(){
     await originalCreate();
-    if(project().model&&store.page==='lab5')eveTeachMoment(5,'A version has been created. Explain the current practice or connected mode truthfully. Invite the learner to compare the two answers and give one reason for a preference.');
+    if(project().model&&store.page==='lab5')eveTeachMoment(5,'An agent configuration has been saved. Explain how its job, instructions, examples and information fit together. No model has been trained. Invite the learner to explore the job, instructions and saved example in the walkthrough. This is not a live answer or an answer comparison.');
   };
   const originalChat=sendChat;
   sendChat=async function(){

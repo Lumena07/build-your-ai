@@ -1,6 +1,6 @@
 # GPU integration — RunPod Serverless
 
-This folder turns the local seven-lab prototype into a genuine GPU product.
+Legacy integration, outside the current AI 102 course. AI 102 no longer exposes a model-training workflow: Day 5 saves an agent configuration without submitting or polling GPU jobs. This folder is retained for existing integrations; its private teacher API still powers Eve. The architecture below describes the older GPU integration, not the current learner journey.
 
 ## Architecture
 

@@ -11,7 +11,23 @@ const assert=require('node:assert/strict');
   await route.fulfill({body:fs.readFileSync(name),contentType:name.endsWith('.js')?'application/javascript':name.endsWith('.css')?'text/css':'text/html'});
  });
  await page.goto('http://127.0.0.1:8999');
- await page.evaluate(()=>{project().guidance.learnerName='Emma';project().preset='business';project().name='My business AI';project().purpose=presets[2].purpose;project().samples=[...presets[2].samples];save();render();});
+ await page.evaluate(()=>{const business=presets.find(p=>p.id==='business');project().guidance.learnerName='Emma';project().preset='business';project().name='My business AI';project().purpose=business.purpose;project().samples=[...business.samples];save();render();});
+ // Removed deep-challenge capability is absent on Start here and every lesson.
+ for(const currentPage of ['intro','lab1','lab2','lab3','lab4','lab5','lab6','lab7']){
+  await page.evaluate(currentPage=>{voiceSession.enabled=false;store.page=currentPage;render();},currentPage);
+  const goal=page.getByRole('region',{name:'Today’s learning goal'});
+  assert.equal(await goal.count(),1);
+  assert.equal(await goal.locator('details').count(),0);
+  assert.equal(await page.getByText('Go deeper with Eve',{exact:true}).count(),0);
+  assert.equal(await page.getByRole('button',{name:'Explore this challenge'}).count(),0);
+  assert.equal(await page.getByRole('button',{name:'Talk to Eve',exact:true}).count(),1);
+  const mission=await page.evaluate(currentPage=>evePayload(currentPage==='intro'?0:Number(currentPage.slice(3)),'Teach this step','guidance').activity,currentPage);
+  assert.match(mission,/AI 102 teaches beginners how to create AI agents/);
+  assert.match(mission,/There is no model-training activity in this course/);
+  assert.equal(await page.evaluate(()=>project().guidance.learnerName),'Emma');
+ }
+ assert.equal(await page.evaluate(()=>typeof challengeWithEve),'undefined');
+ await page.evaluate(()=>{store.page='intro';save();render();});
  // One visible activity; picking a preset reveals setup.
  assert.equal(await page.locator('main > .card:visible:not(#eve-debug)').count(),2); // learning goal plus preset card
  await page.getByRole('button',{name:/Business helper Help/}).click();
@@ -48,7 +64,7 @@ const assert=require('node:assert/strict');
  assert.deepEqual(conversationContext.recent_turns,[{role:'learner',text:'Can AI be wrong?'}]);
  const setupContext=await page.evaluate(()=>evePayload(0,'Help me choose'));
  assert.match(setupContext.activity,/^CURRENT PAGE: Start here/);
- assert.equal(setupContext.available_presets.length,6);
+ assert.equal(setupContext.available_presets.length,3);
  // Written questions appear individually and require feedback before continuing.
  assert.equal(await page.locator('textarea[id^="day1-answer-"]').count(),1);
  assert.equal(await page.getByRole('button',{name:'See a sample answer'}).count(),0);
@@ -169,9 +185,13 @@ const assert=require('node:assert/strict');
   await page.getByRole('button',{name:'Try this question',exact:true}).click();
   await page.getByRole('button',{name:'I checked this answer',exact:true}).click();
  }
- await page.getByRole('button',{name:'Finish and save my assistant'}).click();
+ await page.getByRole('button',{name:'Finish and save my agent'}).click();
  await page.getByRole('button',{name:'Admit the limit and ask for a reliable source'}).click();
  assert.equal(await page.evaluate(()=>store.page),'dashboard');
+ assert.match(await page.getByRole('heading',{name:'Your AI agent workshop.'}).innerText(),/agent workshop/);
+ assert.equal(await page.getByRole('heading',{name:'How many AI models can you make?'}).count(),0);
+ for(let i=0;i<5&&await page.getByRole('heading',{name:'How many AI agents can you make?'}).count()===0;i++)await page.getByRole('button',{name:'Next activity',exact:true}).click();
+ assert.equal(await page.getByRole('heading',{name:'How many AI agents can you make?'}).count(),1);
  assert.deepEqual(errors,[]);
  await browser.close();console.log('Beginner journey, misconception retry, resume, isolated reset, voice failure, stale turn and launch tests passed.');
 })().catch(e=>{console.error(e);process.exit(1);});

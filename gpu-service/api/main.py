@@ -102,6 +102,7 @@ class TeacherRequest(BaseModel):
     recent_turns: list[TeacherTurn] = Field(default_factory=list, max_length=12)
     learner_interest: str = Field(default="", max_length=180)
     learner_name: str = Field(default="", max_length=80)
+    has_greeted: bool = False
     language: str = Field(default="English", max_length=80)
     preset_title: str = Field(default="", max_length=120)
     preset_purpose: str = Field(default="", max_length=500)
@@ -127,28 +128,31 @@ def openai_headers() -> dict[str, str]:
 
 def teacher_instructions(body: TeacherRequest) -> str:
     start_here_rules = """
-Start Here page
+Mission Briefing page
 
-This page comes before Day 1.
+This page comes before Mission 1.
 
-- Welcome the student by name.
-- Clearly explain that this is the step before Day 1.
+- Welcome the student by name only on the first exchange, never on subsequent setup actions.
+- Clearly explain that this is the step before Mission 1.
 - Help the student choose what kind of AI she wants to make.
 - Give her a few simple starting ideas if she needs help choosing.
 - Ask the student to pick one starting idea.
 - The only available starting ideas are the choices shown on the page. If you mention choices, use only those exact choices. Never invent an unlisted option.
-- Do not teach Day 1 content yet.
-- Once the student chooses an idea, briefly acknowledge her choice and keep her on the Start Here page unless the page explicitly instructs you to begin Day 1.
+- Do not teach Mission 1 content yet.
+- Once the student chooses an idea, briefly acknowledge her choice and keep her on the Mission Briefing page unless the page explicitly instructs you to begin Mission 1.
 - When the learner's name is already provided, never ask them to say it again.
-""" if body.lesson.lower() == "start here" else ""
+""" if body.lesson.lower() in ("start here", "mission briefing") else ""
     token_transition_rules = """
-Day 2 opening
+Mission 2 opening
 
 - The learner has not revealed any coloured token pieces yet.
-- Connect Day 1 to tokens, then invite the exact first action: predict where the preset question may split and select “Reveal the token pieces.”
+- Connect Mission 1 to tokens, then invite the exact first action: predict where the preset question may split and select “Reveal the token pieces.”
 - Do not tell the learner to click, inspect, or select a coloured piece during this opening.
 """ if body.lesson == "Tokens" and body.previous_takeaway else ""
     return f"""You are Eve, a warm and encouraging teacher speaking directly to a learner.
+AI 102 uses Missions, not Days. Its setup is Mission Briefing, and course completion is Mission Accomplished. Use the current mission number and title supplied in context; do not imply a calendar schedule.
+CONTINUING CONVERSATION
+{'The learner has already been welcomed. Do not say Hi, Hello, Hey, Welcome, Welcome back, Nice to meet you, or introduce yourself again. Begin directly with the explanation, acknowledgment or next action. This applies to mission changes, retries, resume and setup changes.' if body.has_greeted or any(turn.role == 'eve' for turn in body.recent_turns) else 'Only the first Mission Briefing reply may briefly greet the learner and introduce Eve. Other mission replies continue directly without a greeting.'}
 
 OUTPUT CONTRACT
 Return only a JSON object with exactly two fields: "text" and "assessment".
@@ -280,7 +284,7 @@ async def teacher_respond(body: TeacherRequest) -> dict:
         if body.turn_kind == 'answer' and short_answer in ('yes', 'yep', 'all of them', 'every program'):
             return {'text': 'Not quite. An ordinary alarm follows a time you set without using AI. Some programs simply follow fixed rules.', 'assessment': 'not_yet'}
         if body.turn_kind == 'answer' and body.learner_name and short_answer in tuple(prefix + body.learner_name.lower() for prefix in ('my name is ', 'i am ', "i'm ", 'this is ')):
-            return {'text': f'Nice to meet you, {body.learner_name}. Does every computer program use AI?', 'assessment': 'unclear'}
+            return {'text': f'Your name is saved, {body.learner_name}. Does every computer program use AI?', 'assessment': 'unclear'}
         if body.turn_kind == 'answer' and short_answer in ('help', 'help me', 'i do not understand', "i don't understand", 'i do not understand. can you help me?', 'i am not sure', "i don't know"):
             return {'text': 'Think about an ordinary alarm: you choose the time, and it rings then. It follows your instruction without learning from examples. Use that example to decide whether every program needs AI.', 'assessment': 'unclear'}
     if body.current_question == 'Is every token a whole word? Explain your answer.' and body.turn_kind == 'answer':
@@ -294,7 +298,7 @@ async def teacher_respond(body: TeacherRequest) -> dict:
             return {'text': 'Not quite. A token is a piece of text, so punctuation or part of a longer word can also be a token.', 'assessment': 'not_yet'}
     history = "\n".join(f"{turn.role.upper()}: {turn.text}" for turn in body.recent_turns[-12:])
     source = 'PRIVATE TEACHING EVENT' if body.turn_kind == 'guidance' else 'LEARNER NOW'
-    input_text = f"Recent conversation (context only):\n{history or '(This is the first exchange.)'}\n\n{source}: {body.learner_message}"
+    input_text = f"Recent conversation for this activity (context only):\n{history or ('No turns for this activity; the course conversation is continuing.' if body.has_greeted else 'No turns for this activity.')}\n\n{source}: {body.learner_message}"
     request = {
         "model": OPENAI_TEXT_MODEL,
         "instructions": teacher_instructions(body),
@@ -320,6 +324,9 @@ async def teacher_respond(body: TeacherRequest) -> dict:
             if response.status_code >= 400:
                 raise HTTPException(502, "Eve could not answer right now. Check your OpenAI billing, model access, and key, then try again.")
             reply = read_teacher_reply(response.json(), body.turn_kind)
+            if reply and (body.has_greeted or any(turn.role == 'eve' for turn in body.recent_turns)):
+                if re.match(r"^(hi\b|hello\b|hey\b|welcome\b|nice to meet you\b|my name is eve\b|i am eve\b|i'm eve\b)", reply['text'], re.I):
+                    reply = None
             if reply and body.turn_kind == 'guidance' and body.current_question == 'Does every computer program use AI?':
                 spoken = reply['text'].lower()
                 repeats_screen = any(phrase in spoken for phrase in ('phones recognise', 'photo app', 'find faces', 'writing assistant', 'ordinary alarm'))
@@ -336,7 +343,7 @@ async def teacher_respond(body: TeacherRequest) -> dict:
             if reply:
                 return reply
             # Re-generate once; never speak a malformed reply or internal metadata.
-            retry_detail = ' For the Day 2 opening, end by telling the learner to predict the split and select “Reveal the token pieces”; the coloured pieces are not visible yet.' if body.lesson == 'Tokens' and body.previous_takeaway else ''
+            retry_detail = ' For the Mission 2 opening, end by telling the learner to predict the split and select “Reveal the token pieces”; the coloured pieces are not visible yet.' if body.lesson == 'Tokens' and body.previous_takeaway else ''
             request['input'] = input_text + '\n\nReturn a JSON object with text and assessment. Keep the spoken text under 65 words. Speak directly to the learner; omit all interface descriptions and private metadata. If grading correct or not_yet, do not ask any question, offer a new exercise, or ask whether they want an example. Give only the verdict and one short explanation. For unclear, you may repeat only the original question.' + retry_detail
     raise HTTPException(502, "Eve could not prepare a clear reply. Please try again.")
 

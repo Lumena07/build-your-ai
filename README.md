@@ -1,8 +1,8 @@
-# Build Your AI — runnable MVP
+# Build Your AI Agent — runnable MVP
 
 Serve this folder locally and open `http://127.0.0.1:8000/index.html`. The practice activities do not require a GPU. Eve's natural voice requires the private teacher service and an OpenAI key.
 
-This is a learning prototype for the seven-lab experience. It stores projects in the browser and includes six presets, training examples, test questions, practice versions, reference notes, tools, three guided final tests and JSON export.
+AI 102 teaches beginners how to create AI agents using an existing model, instructions, answer examples, reference information and tools for a clear job. There is no model-training workflow or GPU requirement. This learning prototype stores projects in the browser and includes three presets, test questions, saved agent configurations, reference notes, tools, three guided final tests and JSON export.
 
 ## Eve — a live AI teacher
 
@@ -40,13 +40,24 @@ audio files, or lesson conversation on GitHub.
 
 ## Important product truth
 
-The local prototype uses an educational model simulator so it works without a GPU or an API key. It does **not** claim to fine-tune a neural network. In production, replace the simulator at `generateReply()` and `createModel()` with a model-serving endpoint and a queued LoRA fine-tuning job. Each learner can create unlimited projects/model versions; each version is a derivative configuration of a shared open-weight base checkpoint, not a new foundation model.
+The local prototype demonstrates agent configurations, saved example responses and local tools without a GPU or an API key. Live generated answers require a connection to an existing-model service, not model training. Each learner can save multiple agent projects and configuration versions. The legacy `project.model` field stores configuration versions for compatibility with saved browser projects; saving it never submits a training job. Eve's private API service powers the teacher, not the learner's local agent.
 
 ## Presets
 
-- Biology tutor (English + Swahili)
-- Study assistant
-- Small-business helper
-- Aviation compliance assistant
-- Writing assistant
+- Biology tutor
+- Business helper
 - Personal coach
+
+Older saved projects from the retired templates remain available; the new-project chooser offers only these three.
+
+## Invite-only online course
+
+Sites serves the course and Eve from the same protected origin. Its custom access policy allows only the owner and specifically invited email addresses. Students sign in with the account matching their invitation. Manage students through the Site's sharing controls; do not switch the audience to public.
+
+The hosting secret `OPENAI_API_KEY` is server-only. The Worker uses Sites' trusted authenticated-user header, limits recordings and replies, checks request origins, and stores atomic usage counters in D1. Limits are 600 teacher requests per course per UTC day, 180 per student per UTC day, and 20 per student per minute. These are request limits, not a guaranteed dollar spending cap; set an OpenAI project budget separately.
+
+Each signed-in account gets its own browser storage namespace. Restart affects only that account's active project. Progress does not yet sync between devices, and clearing browser storage removes it. The hosted key powers Eve, not live generation by the learner's agent.
+
+Build with `npm run build`; generate migrations with `npm run db:generate`. `node test-online.cjs` tests authentication/error limits and actual browser controls using mocked identity, D1, OpenAI and audio hardware. Add `--live` to also check a real OpenAI reply and speech with the approved ignored local key. Actual email delivery/sign-in acceptance requires the student's account and is not covered by those tests.
+
+Rollback: redeploy a previous saved version if protected sign-in or lesson loading fails. If Eve fails, keep written activities available and use Try again. Do not loosen student access to repair a deployment. The usage migration only adds a table, so previous static versions remain compatible.
