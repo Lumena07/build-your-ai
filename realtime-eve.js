@@ -25,6 +25,8 @@ window.EveRealtime=(()=>{
   if(pc&&dc?.readyState==='open')return;if(connecting)return connecting;
   const token=epoch;connecting=(async()=>{
    await closing;if(token!==epoch)return;if(!await CourseSession.check())throw Error('Continue on this device before talking to Eve.');
+   // If a stop request was dropped, the same verified lease recovers its call.
+   if(!await CourseSession.start())throw Error('Eve could not recover her connection. Please try again.');if(token!==epoch)return;
    const media=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});if(token!==epoch){media.getTracks().forEach(t=>t.stop());return;}
    stream=media;pc=new RTCPeerConnection();audio=document.createElement('audio');audio.autoplay=true;audio.setAttribute('playsinline','');audio.hidden=true;document.body.append(audio);pc.ontrack=e=>{audio.srcObject=e.streams[0];void audio.play().catch(()=>{voiceState('error','Click Talk to Eve to enable sound.');});};stream.getAudioTracks().forEach(track=>pc.addTrack(track,stream));dc=pc.createDataChannel('oai-events');dc.onmessage=e=>{try{void onEvent(JSON.parse(e.data),token);}catch{}};
    pc.onconnectionstatechange=()=>{if(token===epoch&&['failed','disconnected'].includes(pc?.connectionState)){stop();voiceState('error','Eve lost her connection. Your work is saved. Try again.');paint();}};
