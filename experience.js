@@ -258,6 +258,7 @@ async function speakTurn(text,token){
 }
 async function runVoice(day,message,learner=false,transition=null){
  if(!voiceSession.enabled||voiceSession.phase==='recording'||store.page!==(day===0?'intro':`lab${day}`))return;
+ claimEveTeachingEvent(day);
  const answerInput=learner?(day===1?document.querySelector('textarea[id^="day1-answer-"]'):day===2?document.getElementById('day2-answer'):null):null;
  if(answerInput){
   const key=day===1?answerInput.id.replace('day1-answer-',''):'tokens',review=day===1?project().guidance.day1Answers?.[key]:project().guidance.day2Answer;

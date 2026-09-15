@@ -36,7 +36,7 @@ window.EveRealtime=(()=>{
   })().catch(error=>{if(token===epoch){stop();voiceState('error',error.name==='NotAllowedError'?'Allow microphone access to talk to Eve, or continue reading.':error.message);paint();}throw error;}).finally(()=>{if(token===epoch)connecting=null;});return connecting;
  }
  async function guide(d,message,transition=null,exact=false){
-  if(!enabled()||!voiceSession.enabled||!CourseSession.active)return;day=d;const rev=++revision,payload=evePayload(d,message,'guidance',transition);interrupt();
+  if(!enabled()||!voiceSession.enabled||!CourseSession.active)return;claimEveTeachingEvent(d);day=d;const rev=++revision,payload=evePayload(d,message,'guidance',transition);interrupt();
   try{await connect(payload);if(rev!==revision||!pc)return;context=await api('/v1/teacher/realtime/context',payload);if(rev!==revision||!pc)return;send({type:'session.update',session:{type:'realtime',instructions:context.instructions,audio:{input:{turn_detection:context.turn_detection}}}});
    // A new activity has fresh, private teaching context; it is never learner speech.
    send({type:'response.create',response:{instructions:context.instructions+'\nFor this turn only: '+(exact?'Speak this checked feedback exactly, without another question: ':'Teach this current event in your own words, not by reading instructions: ')+message,output_modalities:['audio']}});awaiting=true;paint();

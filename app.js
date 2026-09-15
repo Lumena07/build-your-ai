@@ -38,7 +38,7 @@ function nav(){return `<aside class="sidebar"><div class="brand">AI 102</div><di
 function layout(content){document.querySelector('#app').innerHTML=`<div class="shell">${nav()}<main><div class="topbar"><b>AI 102</b></div>${content}${eveDebugMarkup()}</main>${panel()}</div>`;}
 function evePortrait(){return `<img class="eve-portrait" src="assets/eve-teacher.png" alt="Eve, your African AI teacher" />`;}
 function header(kicker,title,lead){let day=labDay(store.page);return `<header class="classroom-hero"><div><div class="eyebrow">${kicker}</div><h1 class="title">${title}</h1><p class="lead">${lead}</p></div><div class="teacher-illustration">${evePortrait()}<span class="teacher-caption">Eve · Your learning companion</span></div></header>${day?labCoach(day):''}`;}
-function render(){let p=project();if(!p.guidance.learnerName&&store.page!=='intro')store.page='intro';let pages={intro,lab1,lab2,lab3,lab4,lab5,lab6,lab7,dashboard};layout((pages[store.page]||intro)());setTimeout(()=>{tokenize();temperaturePreview();},0);setTimeout(maybeWelcomeEve,0);}
+function render(){let p=project();if(!p.guidance.learnerName&&store.page!=='intro')store.page='intro';let pages={intro,lab1,lab2,lab3,lab4,lab5,lab6,lab7,dashboard};layout((pages[store.page]||intro)());setTimeout(()=>{tokenize();temperaturePreview();},0);queueEveWelcome();}
 
 function intro(){let p=project();if(!p.guidance.learnerName)return `<section class="course-welcome"><div class="welcome-copy"><div class="eyebrow">AI 102 · YOUR AI JOURNEY</div><h1>Understand AI. Build your own agent.</h1><p>Explore how AI works, practise each idea, and build an agent you can explain and test. Type your name to meet Eve.</p><form onsubmit="event.preventDefault();submitLearnerName()" novalidate><div class="field"><label for="learner-name">Your name</label><input id="learner-name" autocomplete="given-name" maxlength="80" required aria-describedby="learner-name-error" value="${esc(p.guidance.drafts?.intro?.['learner-name']||'')}" placeholder="For example: Emma" /></div><p id="learner-name-error" role="alert"></p><button class="button" type="submit">Start AI 102</button></form></div>${evePortrait()}</section>`;return `${header('MISSION BRIEFING','First, decide what your AI agent will help with.','Before Mission 1, choose your agent’s job, working name. All agents use English. Eve will guide you through building and testing it.')}${eveVoiceButton(0)}
 <div class="card"><h2>What would you like your agent to help with?</h2><p class="muted">Pick a starting idea—we’ll learn and build it together.</p><div class="grid3">${presets.map(x=>`<button class="choice ${p.preset===x.id?'selected':''}" onclick="choosePreset('${x.id}')"><span class="preset-symbol" aria-hidden="true">${({tutor:'🔬',business:'📊',coach:'🧭'})[x.id]}</span><strong>${x.title}</strong><small>${esc(x.purpose)}</small></button>`).join('')}</div></div>
@@ -146,7 +146,20 @@ async function playLiveEve(text,day){let requestId=++eveAudioRequest;updateEveDe
 async function useEve(day){unlockEveAudio();if(eveAudio){stopEve();return;}await toggleEveRecording(day);}
 function startAI102(){submitLearnerName();}
 function nameFromSpeech(text){let name=text.replace(/^(my name is|i am|i'm|this is)\s+/i,'').replace(/[^\p{L}\s'-]/gu,'').trim().split(/\s+/).slice(0,3).join(' ');return name?name.replace(/\b\p{L}/gu,letter=>letter.toUpperCase()):'';}
-let evePageVisit='',evePreviousPage='';
+let evePageVisit='',evePreviousPage='',eveWelcomeTimer=null,eveTeachingRevision=0;
+function claimEveTeachingEvent(day){
+ if(store.page!==(day===0?'intro':`lab${day}`))return;
+ eveTeachingRevision++;evePageVisit=project().id+':'+store.page;
+ clearTimeout(eveWelcomeTimer);eveWelcomeTimer=null;
+}
+function queueEveWelcome(){
+ clearTimeout(eveWelcomeTimer);
+ const page=store.page,id=project().id,revision=eveTeachingRevision;
+ eveWelcomeTimer=setTimeout(()=>{
+  eveWelcomeTimer=null;
+  if(store.page===page&&project().id===id&&revision===eveTeachingRevision)void maybeWelcomeEve();
+ },0);
+}
 async function maybeWelcomeEve(){
   const p=project(),page=store.page,day=page==='intro'?0:labDay(page);
   if(day===null||!p.guidance.learnerName)return;
