@@ -208,4 +208,5 @@ installLearningEvents();
 installExperience();
 installCourseJourney();
 installLessonDesign();
+window.EveRealtime?.install();
 render();

@@ -8,6 +8,13 @@
       "when": 1789462495837,
       "tag": "0000_smiling_lightspeed",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789464632363,
+      "tag": "0001_special_slyde",
+      "breakpoints": true
     }
   ]
 }

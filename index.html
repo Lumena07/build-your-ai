@@ -11,11 +11,15 @@
 <body>
   <div id="app"></div>
   <script src="runtime-config.js?v=20260911-eve10"></script>
-  <script src="gpu-client.js?v=20260914-agent15"></script>
-  <script src="curriculum.js?v=20260915-missions23"></script>
-  <script src="experience.js?v=20260915-conversation24"></script>
-  <script src="journey.js?v=20260915-missions23"></script>
-  <script src="lesson-design.js?v=20260915-missions23"></script>
-  <script src="app.js?v=20260915-online25"></script>
+  <script src="course-session.js?v=20260915-live26"></script>
+  <script>
+    async function loadCourse(){
+      for(const file of ['gpu-client.js','curriculum.js','experience.js','journey.js','lesson-design.js','realtime-eve.js','app.js']){
+        await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=file+'?v=20260915-live26';script.onload=resolve;script.onerror=()=>reject(new Error('Course connection interrupted. Please reload.'));document.body.append(script);});
+      }
+    }
+    window.addEventListener('course-session-ready',()=>void loadCourse().catch(error=>window.CourseSession?.block(error.message)),{once:true});
+    if(window.CourseSession)void CourseSession.boot();else void loadCourse();
+  </script>
 </body>
 </html>
