@@ -11,11 +11,11 @@
 <body>
   <div id="app"><section class="course-loading" role="status" aria-live="polite"><img src="assets/eve-teacher.png" alt=""><h1>Opening your classroom…</h1><div class="eve-loading-dots" aria-hidden="true"><i></i><i></i><i></i></div></section></div>
   <script src="runtime-config.js?v=20260911-eve10"></script>
-  <script src="course-session.js?v=20260916-choice27"></script>
+  <script src="course-session.js?v=20260916-feedback28"></script>
   <script>
     async function loadCourse(){
       for(const file of ['gpu-client.js','curriculum.js','experience.js','journey.js','lesson-design.js','realtime-eve.js','app.js']){
-        await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=file+'?v=20260916-choice27';script.onload=resolve;script.onerror=()=>reject(new Error('Course connection interrupted. Please reload.'));document.body.append(script);});
+        await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=file+'?v=20260916-feedback28';script.onload=resolve;script.onerror=()=>reject(new Error('Course connection interrupted. Please reload.'));document.body.append(script);});
       }
     }
     window.addEventListener('course-session-ready',()=>void loadCourse().catch(error=>window.CourseSession?.block(error.message)),{once:true});
