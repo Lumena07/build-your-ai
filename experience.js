@@ -348,6 +348,7 @@ function submitLearnerName(){
 
 function restartLearner(){
  if(!confirm('Restart this learner? This removes this learner’s name, conversations and AI project from this browser. Other projects stay saved.'))return;
+ window.EveRealtime?.stop();
  cancelVoice();const id=store.active;store.projects=store.projects.filter(p=>p.id!==id);
  const fresh=defaultProject();store.projects.push(fresh);store.active=fresh.id;store.page='intro';
  voiceSession.enabled=false;courseResuming=false;pendingCheck=null;evePageVisit='';evePreviousPage='';save();render();

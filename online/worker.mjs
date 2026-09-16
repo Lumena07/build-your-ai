@@ -41,7 +41,8 @@ async function startSession(request,env,user){
 export function realtimeContext(body){
  teachingBody(body);
  const instructions=teachingPrompt(body).replace(/OUTPUT CONTRACT[\s\S]*?(?=TURN:)/,'LIVE VOICE\nSpeak naturally, under 65 words, one idea and at most one question. Never read JSON or private context aloud.\n').replace(/^TURN:[^\r\n]*/m,'TURN: conversation').replace(/If TURN is answer:[^\r\n]*/g,'The site verifies exercise answers separately. Give hints without claiming to grade or unlock activities.').replace(/Use assessment "none"\./g,'');
- return {instructions:instructions+'\nYou are in a live conversation; finish your thought unless the learner clicks Talk to Eve. Wait for the learner after one small idea. Respond directly without a greeting once already welcomed. Never claim to save an answer or complete a lesson. The site verifies exercises separately.',turn_detection:{type:'server_vad',threshold:0.5,prefix_padding_ms:300,silence_duration_ms:450,create_response:!body.current_question,interrupt_response:false}};
+ const questionRule=body.current_question?'A writing box is visible. You may ask only the current question and tell the learner to type in that box. Do not ask for a spoken answer.':'No writing box is visible. Do not ask the learner any question. Explain or guide the visible step without requesting an answer.';
+ return {instructions:instructions+'\nYou are the automatic lesson guide. Finish one short teaching thought. '+questionRule+' Respond directly without a greeting once already welcomed. Never claim to save an answer or complete a lesson. The site verifies exercises separately.'};
 }
 async function realtimeCall(request,env,user,row){
  const body=await request.json();if(typeof body.sdp!=='string'||!body.sdp.startsWith('v=0')||body.sdp.length>100000)fail(400,'Invalid voice connection.');
@@ -51,7 +52,7 @@ async function realtimeCall(request,env,user,row){
  let callId=null;
  try{
   await reserve(env,user);
-  const form=new FormData();form.set('sdp',body.sdp);form.set('session',JSON.stringify({type:'realtime',model:'gpt-realtime-mini',instructions:context.instructions,max_output_tokens:400,output_modalities:['audio'],audio:{input:{transcription:{model:'gpt-4o-mini-transcribe',language:'en'},turn_detection:context.turn_detection},output:{voice:'marin'}}}));
+  const form=new FormData();form.set('sdp',body.sdp);form.set('session',JSON.stringify({type:'realtime',model:'gpt-realtime-mini',instructions:context.instructions,max_output_tokens:400,output_modalities:['audio'],audio:{output:{voice:'marin'}}}));
   const result=await openai(env,'realtime/calls',{method:'POST',body:form,headers:{'OpenAI-Safety-Identifier':await hash(user)}});
   callId=(result.headers.get('location')||'').match(/\/calls\/([A-Za-z0-9_-]+)(?:$|\?)/)?.[1];if(!callId)fail(502,'Eve could not confirm her live connection.');
   const bind=await env.DB.prepare('UPDATE course_sessions SET call_id=? WHERE user_id=? AND token_hash=? AND call_id=?').bind(callId,user,row.token_hash,pending).run();
