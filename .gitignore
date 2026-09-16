@@ -7,4 +7,5 @@ gpu-service/api/app.db
 gpu-service/api/data/
 node_modules/
 dist/
+dist-blocks/
 .sites-runtime/

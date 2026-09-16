@@ -14,7 +14,7 @@
   <script src="course-session.js?v=20260916-feedback28"></script>
   <script>
     async function loadCourse(){
-      for(const file of ['gpu-client.js','curriculum.js','experience.js','journey.js','lesson-design.js','realtime-eve.js','app.js']){
+      for(const file of ['blocks/learning-journey/index.js','blocks/classroom-ui/index.js','blocks/eve-teacher/index.js','gpu-client.js','curriculum.js','experience.js','journey.js','lesson-design.js','realtime-eve.js','app.js']){
         await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=file+'?v=20260916-actions31';script.onload=resolve;script.onerror=()=>reject(new Error('Course connection interrupted. Please reload.'));document.body.append(script);});
       }
     }

@@ -128,19 +128,7 @@ function eveActivityKey(day){
  return input?input.id:'day1-choice';
 }
 function eveActionGrounding({day,writingBox,reviewedAnswer,choicePanel,choiceMode,welcomeMode}){
- const dialog=document.querySelector('dialog[open]'),root=dialog||document.querySelector('main');
- const visible=element=>element&&element.offsetParent!==null&&!element.hidden;
- const buttons=Array.from(root?.querySelectorAll('button')||[]).filter(button=>visible(button)&&!button.disabled&&!button.closest('#eve-live-controls,#eve-debug,.topbar')).map(button=>({label:button.textContent.trim().replace(/\s+/g,' '),element:button})).filter(item=>item.label&&!/^Restart this learner$/i.test(item.label));
- const labels=[...new Set(buttons.map(item=>item.label))].slice(0,8);
- if(dialog){const save=labels.find(label=>/Save name.*begin Mission 1/i.test(label));return {visibleActions:labels.join(' | ')||'Agent naming box',nextAction:save?`Type an agent name, then select “${save}”.`:'Type an agent name in the open naming box.'};}
- if(welcomeMode==='mission_briefing')return {visibleActions:'Biology tutor | Business helper | Personal coach',nextAction:'Choose one starting mission on the page.'};
- if(writingBox&&!reviewedAnswer){const check=labels.find(label=>/Check with Eve/i.test(label));return {visibleActions:labels.join(' | ')||'Writing box',nextAction:`Type an answer in the visible writing box${check?`, then select “${check}”`:''}.`};}
- if(choiceMode==='before_choice')return {visibleActions:'Unanswered multiple-choice options',nextAction:'Select one answer on the page.'};
- const forward=buttons.filter(item=>!item.element.closest('.chapter-choices')&&!item.element.matches('.ghost')&&!/^(Previous|Back|Revisit|Review)/i.test(item.label));
- if(choiceMode==='after_choice'&&!forward.length)return {visibleActions:'Multiple-choice options',nextAction:'Select another answer on the page.'};
- const preferred=forward.filter(item=>!item.element.matches('.secondary')).at(-1)||forward.at(-1)||buttons.at(-1);
- if(preferred)return {visibleActions:labels.join(' | '),nextAction:`Select “${preferred.label}”.`};
- return {visibleActions:'None',nextAction:'No learner action is currently available. Do not invent one.'};
+ return AI102Blocks.eveTeacher.groundVisibleAction({document,day,writingBox,reviewedAnswer,choicePanel,choiceMode,welcomeMode,presetLabels:presets.map(item=>item.title)});
 }
 function evePayload(day,message,turnKind='conversation',transition=null){
  const p=project(),lesson=day===0?startHereLesson:(lessonNotes[day]||lessonNotes[1]),preset=day1Preset(p),key=eveActivityKey(day);

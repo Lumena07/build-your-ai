@@ -19,7 +19,7 @@ const assert=require('node:assert/strict');
     reply={text:'Yesterday you learned that AI uses patterns and your request to form an answer. Today we look inside that process: the model works with text pieces called tokens. Predict where your preset question might split, then reveal the pieces.',assessment:'none'};
     return route.fulfill({json:reply});
    }
-   if(!['index.html','app.js','course-session.js','curriculum.js','experience.js','gpu-client.js','journey.js','lesson-design.js','realtime-eve.js','runtime-config.js','styles.css'].includes(name))return route.fulfill({status:404,body:''});
+   if(!['index.html','app.js','course-session.js','curriculum.js','experience.js','gpu-client.js','journey.js','lesson-design.js','realtime-eve.js','runtime-config.js','styles.css','blocks/learning-journey/index.js','blocks/classroom-ui/index.js','blocks/eve-teacher/index.js'].includes(name))return route.fulfill({status:404,body:''});
    return route.fulfill({body:fs.readFileSync(name),contentType:name.endsWith('.js')?'application/javascript':name.endsWith('.css')?'text/css':'text/html'});
   });
   await page.goto('http://127.0.0.1:8999');

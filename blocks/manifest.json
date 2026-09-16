@@ -1,0 +1,8 @@
+{
+  "version": "0.1.0",
+  "blocks": [
+    {"id": "eve-teacher", "entry": "eve-teacher/index.js", "purpose": "Grounds Eve in the visible activity and keeps teaching turns sequential."},
+    {"id": "learning-journey", "entry": "learning-journey/index.js", "purpose": "Controls the Learn, See, Practise, Recap progression and its gates."},
+    {"id": "classroom-ui", "entry": "classroom-ui/index.js", "purpose": "Renders portable Eve status and learning-journey interface components."}
+  ]
+}
