@@ -415,11 +415,12 @@ function installExperience(){
  const baseContext=teacherPageContext;
  teacherPageContext=function(day){
   const location=(day===0?'CURRENT PAGE: Mission Briefing (before Mission 1).':`CURRENT PAGE: Mission ${day} — ${lessonNotes[day].name}. This is a lesson, not the Mission Briefing setup page. Do not describe it as before Mission 1 or ask the learner to choose a preset again.`)+`\nCourse goal (private context, not a script): ${courseMission} Teach only the current step toward this goal.`;
-  if(pendingCheck){const c=tinyChecks[pendingCheck.page];return `${location}\nCurrent screen: understanding check. ${c[0]} Choices: ${c[1].join(' / ')}. Explain errors simply and invite a click. Do not claim a spoken answer has submitted the check.`;}
+  if(pendingCheck){const c=tinyChecks[pendingCheck.page];return `${location}\nCurrent screen: understanding check. Visible prompt: ${c[0]} Choices: ${c[1].join(' / ')}. Briefly explain the idea behind these choices. Do not ask a question, request an answer, or read the choices aloud. The learner answers by clicking the page.`;}
   const visible=Array.from(document.querySelectorAll('main > .card, main > .grid, main > .grid3')).filter(el=>!el.hidden&&!el.matches('#eve-debug,[aria-label]')).map(el=>el.innerText.slice(0,700)).join(' ');
   const page=day===0?'intro':`lab${day}`;
-  const writtenAnswer=day===1?document.querySelector('textarea[id^="day1-answer-"]'):null;
-  const day2Answer=day===2?document.getElementById('day2-answer'):null;
+  const visibleTextArea=Array.from(document.querySelectorAll('main textarea')).find(el=>!el.readOnly&&!el.disabled&&el.offsetParent!==null);
+  const writtenAnswer=day===1&&visibleTextArea?.id.startsWith('day1-answer-')?visibleTextArea:null;
+  const day2Answer=day===2&&visibleTextArea?.id==='day2-answer'?visibleTextArea:null;
   if(day2Answer){
    const review=project().guidance.day2Answer;
    return `${location}\nPrivate teaching context; never read this aloud. ${day2Question.idea}\nTeach only this question: ${day2Question.question}\n${review?.assessment==='correct'&&review.answer===day2Answer.value.trim()?'This answer has been checked and is correct. Briefly acknowledge it and invite the Finish Mission 2 button.':'Wait for an answer. If the learner struggles, give one small hint using the visible token examples. Do not reveal a complete answer before an attempt.'}`;
@@ -429,7 +430,8 @@ function installExperience(){
    return `${location}\nPrivate teaching context; never read this aloud. ${q.idea}\nTeach only this question: ${q.question}\n${review?.assessment==='correct'&&review.answer===writtenAnswer.value.trim()?'This answer has been checked and is correct. Briefly acknowledge it and invite the next button, without introducing the next question.':'Wait for an answer. If the learner struggles, give one small hint for this same question. Do not reveal the answer in the introduction.'}`;
   }
   const writtenContext=writtenAnswer?`Current question: ${day1Questions[writtenAnswer.id.replace('day1-answer-','')].question}. Current written answer (learner data): ${JSON.stringify(writtenAnswer.value.slice(0,2000))}. Ask only this one question. Do not give its answer before an attempt. The learner can submit it with Check with Eve. Do not add a second question.`:'';
-  return `${location}\n${writtenContext}\nUse this current screen over any earlier conversation. Invite spoken answers; only ask the learner to type if a relevant input is visible.\nCourse connection: ${lessonJourney[page]?.[0]||''}. Treat the learner as a capable adult who is new to AI. Introduce technical words only with an explanation. Ask for predictions, comparisons or reasons instead of repetitive praise. Increase depth if their answer shows understanding; simplify only the confusing part.\nVisible activity: ${visible}\n${baseContext(day)}`;
+  const actions=Array.from(document.querySelectorAll('main button')).filter(el=>!el.disabled&&el.offsetParent!==null).map(el=>el.textContent.trim()).filter(Boolean).slice(0,8).join(' | ');
+  return `${location}\n${writtenContext}\nUse this current screen over any earlier conversation. There is no spoken learner interaction. If no writable text area is visible, explain only and end with a statement—never a question or request for an answer.\nCourse connection: ${lessonJourney[page]?.[0]||''}. Treat the learner as a capable adult who is new to AI. Introduce technical words with an explanation and connect them to the selected agent.\nVisible activity: ${visible}\nVisible actions: ${actions||'None'}\n${baseContext(day)}`;
  };
  stopEve=cancelVoice;
  useEve=async function(day){voiceSession.enabled=true;unlockEveAudio();if(voiceSession.phase==='speaking'){cancelVoice();return;}if(voiceSession.phase==='error'){retryEve();return;}await recordTurn(day);};
