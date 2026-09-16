@@ -78,6 +78,8 @@ export function teachingPrompt(body){
  if(body.welcome_mode==='mission_briefing')result+='\nThis is the one-time AI 102 course welcome. Greet the learner by name, explain that the course teaches how AI works while they build and test an AI agent across seven short missions, say you will guide them step by step, and direct them to choose their starting mission. Do not ask a question.';
  if(['mission briefing','start here'].includes(body.lesson.toLowerCase()))result+='\nThis is before Mission 1. Help only with choosing one listed preset or naming it. Available choices: '+(body.available_presets||[]).slice(0,3).join(' | ')+'. Never invent a different preset.';
  result+='\nPreset example questions: '+(body.preset_examples||[]).slice(0,3).join(' | ');
+ const visible=String(body.visible_actions||'None').trim().slice(0,1000),next=String(body.next_action||'No learner action is currently available. Do not invent one.').trim().slice(0,1000);
+ result+=`\nACTION GROUNDING — authoritative current screen state: Visible controls: ${visible}. Correct next action: ${next} If you direct the learner to act, use only this correct next action and quote a button label exactly when one is supplied. Never mention a different button, hidden activity, later mission, or earlier action.`;
  return result;
 }
 export function checkedReply(data,body){

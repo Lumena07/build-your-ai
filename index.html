@@ -15,7 +15,7 @@
   <script>
     async function loadCourse(){
       for(const file of ['gpu-client.js','curriculum.js','experience.js','journey.js','lesson-design.js','realtime-eve.js','app.js']){
-        await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=file+'?v=20260916-continuity30';script.onload=resolve;script.onerror=()=>reject(new Error('Course connection interrupted. Please reload.'));document.body.append(script);});
+        await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=file+'?v=20260916-actions31';script.onload=resolve;script.onerror=()=>reject(new Error('Course connection interrupted. Please reload.'));document.body.append(script);});
       }
     }
     window.addEventListener('course-session-ready',()=>void loadCourse().catch(error=>window.CourseSession?.block(error.message)),{once:true});

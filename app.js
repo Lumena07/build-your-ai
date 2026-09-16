@@ -127,10 +127,25 @@ function eveActivityKey(day){
  const input=document.querySelector('textarea[id^="day1-answer-"]');
  return input?input.id:'day1-choice';
 }
+function eveActionGrounding({day,writingBox,reviewedAnswer,choicePanel,choiceMode,welcomeMode}){
+ const dialog=document.querySelector('dialog[open]'),root=dialog||document.querySelector('main');
+ const visible=element=>element&&element.offsetParent!==null&&!element.hidden;
+ const buttons=Array.from(root?.querySelectorAll('button')||[]).filter(button=>visible(button)&&!button.disabled&&!button.closest('#eve-live-controls,#eve-debug,.topbar')).map(button=>({label:button.textContent.trim().replace(/\s+/g,' '),element:button})).filter(item=>item.label&&!/^Restart this learner$/i.test(item.label));
+ const labels=[...new Set(buttons.map(item=>item.label))].slice(0,8);
+ if(dialog){const save=labels.find(label=>/Save name.*begin Mission 1/i.test(label));return {visibleActions:labels.join(' | ')||'Agent naming box',nextAction:save?`Type an agent name, then select “${save}”.`:'Type an agent name in the open naming box.'};}
+ if(welcomeMode==='mission_briefing')return {visibleActions:'Biology tutor | Business helper | Personal coach',nextAction:'Choose one starting mission on the page.'};
+ if(writingBox&&!reviewedAnswer){const check=labels.find(label=>/Check with Eve/i.test(label));return {visibleActions:labels.join(' | ')||'Writing box',nextAction:`Type an answer in the visible writing box${check?`, then select “${check}”`:''}.`};}
+ if(choiceMode==='before_choice')return {visibleActions:'Unanswered multiple-choice options',nextAction:'Select one answer on the page.'};
+ const forward=buttons.filter(item=>!item.element.closest('.chapter-choices')&&!item.element.matches('.ghost')&&!/^(Previous|Back|Revisit|Review)/i.test(item.label));
+ if(choiceMode==='after_choice'&&!forward.length)return {visibleActions:'Multiple-choice options',nextAction:'Select another answer on the page.'};
+ const preferred=forward.filter(item=>!item.element.matches('.secondary')).at(-1)||forward.at(-1)||buttons.at(-1);
+ if(preferred)return {visibleActions:labels.join(' | '),nextAction:`Select “${preferred.label}”.`};
+ return {visibleActions:'None',nextAction:'No learner action is currently available. Do not invent one.'};
+}
 function evePayload(day,message,turnKind='conversation',transition=null){
  const p=project(),lesson=day===0?startHereLesson:(lessonNotes[day]||lessonNotes[1]),preset=day1Preset(p),key=eveActivityKey(day);
  p.guidance.eveGreeted??=(p.guidance.eveHistory||[]).some(turn=>turn.role==='eve');
- const welcomeMode=day===0&&!p.guidance.eveGreeted&&turnKind==='guidance'?'mission_briefing':'';
+ const welcomeMode=day===0&&!p.guidance.eveGreeted&&!p.preset&&turnKind==='guidance'?'mission_briefing':'';
  const turns=(p.guidance.eveHistory||[]).filter(turn=>turn.day===day&&turn.pageContextVersion===3&&turn.activityKey===key).slice(-8).map(turn=>({role:turn.role,text:turn.text.slice(0,2000)}));
  const input=day===1?document.querySelector('textarea[id^="day1-answer-"]'):day===2?document.getElementById('day2-answer'):null,q=day===1&&input?day1Questions[input.id.replace('day1-answer-','')]:day===2&&input?day2Question:null;
  const x=presetPractice[p.preset]||presetPractice.tutor;
@@ -146,7 +161,8 @@ function evePayload(day,message,turnKind='conversation',transition=null){
  const choiceMode=choiceVisible?(choiceAttempted?'after_choice':'before_choice'):'none';
  const lessonSummary=choiceMode==='before_choice'?'A multiple-choice practice is waiting for the learner. Do not teach, restate or hint at the answer before an option is selected.':day===1&&q?q.idea:day===2&&q?q.idea:lesson.simple;
  const activity=choiceMode==='before_choice'?`CURRENT PAGE: ${day===0?'Mission Briefing':`Mission ${day}`}. CURRENT STAGE: Practice. A multiple-choice question is visible, but its prompt, options and answer are intentionally withheld until the learner makes a choice. Do not name, compare, eliminate, paraphrase or hint at any option.`:teacherPageContext(day).slice(0,2000);
- return {has_greeted:p.guidance.eveGreeted,welcome_mode:welcomeMode,lesson:lesson.name,lesson_summary:lessonSummary,activity,learner_message:message.slice(0,2000),recent_turns:turnKind==='guidance'?[]:turns,learner_interest:Object.values(p.guidance.interests||{}).join(', ').slice(0,180),learner_name:p.guidance.learnerName,language:p.languages,preset_title:p.preset?preset.title:'',preset_purpose:p.preset?preset.purpose:'',preset_examples:choiceMode==='before_choice'?[]:day===1?[]:p.preset?preset.samples:[],available_presets:day===0?presets.map(x=>`${x.title}: ${x.purpose}`):[],turn_kind:turnKind,current_question:writingBox&&!reviewedAnswer?(q?.question||writingBox.closest('.card')?.querySelector('h2,h3')?.textContent||'Complete the visible writing task.'):'',answer_state:reviewedAnswer?writtenReview.assessment:'',choice_mode:choiceMode,question_context:choiceMode==='before_choice'?'':context,answer_guidance:choiceMode==='before_choice'?'':q?.rubric||'',previous_takeaway:transition?.previous||'',lesson_connection:transition?.connection||'',opening_action:transition?.opening||''};
+ const action=eveActionGrounding({day,writingBox,reviewedAnswer,choicePanel,choiceMode,welcomeMode});
+ return {has_greeted:p.guidance.eveGreeted,welcome_mode:welcomeMode,lesson:lesson.name,lesson_summary:lessonSummary,activity,learner_message:message.slice(0,2000),recent_turns:turnKind==='guidance'?[]:turns,learner_interest:Object.values(p.guidance.interests||{}).join(', ').slice(0,180),learner_name:p.guidance.learnerName,language:p.languages,preset_title:p.preset?preset.title:'',preset_purpose:p.preset?preset.purpose:'',preset_examples:choiceMode==='before_choice'?[]:day===1?[]:p.preset?preset.samples:[],available_presets:day===0?presets.map(x=>`${x.title}: ${x.purpose}`):[],turn_kind:turnKind,current_question:writingBox&&!reviewedAnswer?(q?.question||writingBox.closest('.card')?.querySelector('h2,h3')?.textContent||'Complete the visible writing task.'):'',answer_state:reviewedAnswer?writtenReview.assessment:'',choice_mode:choiceMode,question_context:choiceMode==='before_choice'?'':context,answer_guidance:choiceMode==='before_choice'?'':q?.rubric||'',previous_takeaway:transition?.previous||'',lesson_connection:transition?.connection||'',opening_action:transition?.opening||'',visible_actions:action.visibleActions,next_action:action.nextAction};
 }
 function saveEveTurn(day,role,text){let p=project();p.guidance.eveHistory.push({day,role,text,at:Date.now(),pageContextVersion:3,activityKey:eveActivityKey(day)});p.guidance.eveHistory=p.guidance.eveHistory.slice(-40);save();}
 async function sendLiveEve(day,message){let requestId=++eveReplyRequest;saveEveTurn(day,'learner',message);updateEveDebug('Sending what Eve heard to OpenAI…',{heard:message,error:''});try{let reply=await window.BuildAICloud.teacherReply(evePayload(day,message));if(requestId!==eveReplyRequest)return;saveEveTurn(day,'eve',reply.text);updateEveDebug('OpenAI replied. Making Eve’s voice…',{reply:reply.text});playLiveEve(reply.text,day);}catch(error){if(requestId!==eveReplyRequest)return;updateEveDebug('Eve could not get a reply.',{error:error.message});toast(error.message);}}
