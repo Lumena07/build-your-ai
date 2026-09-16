@@ -28,7 +28,7 @@ function learningContext(page,p){
 
 const lessonJourney={
  intro:['Your journey: build an AI agent with a clear job, helpful answers and tools you can test.','What would make this agent worth using?'],
- lab1:['Mission Briefing gave your assistant a purpose. First, discover what AI actually is.','Could a fluent answer still be wrong? Give a realistic example.'],
+ lab1:['Begin here: discover what AI is, what it can do, and why its answers still need checking.','Could a fluent answer still be wrong? Give a realistic example.'],
  lab2:['Mission 1 showed a text answer. Now look at the small pieces of text a model works with.','Why might two sentences with the same number of words use different numbers of tokens?'],
  lab3:['Mission 2 explored text pieces. Now show the kind of complete answer you want those pieces to form.','Could an example be well written but teach the wrong thing? Explain how.'],
  lab4:['Mission 3 showed good answers through examples. Now describe their shared qualities as clear instructions.','Write two rules that conflict. How would you resolve the conflict?'],
@@ -40,7 +40,6 @@ const lessonJourney={
 // One source of truth for what Eve carries forward at each real course handoff.
 // A transition is used only when the learner actually came from the listed page.
 const lessonTransitions={
- lab1:{from:'intro',previous:courseGuide.intro.takeaway,connection:lessonJourney.lab1[0],opening:courseGuide.lab1.steps[0]},
  lab2:{from:'lab1',previous:courseGuide.lab1.takeaway,connection:lessonJourney.lab2[0],opening:courseGuide.lab2.steps[0]},
  lab3:{from:'lab2',previous:courseGuide.lab2.takeaway,connection:lessonJourney.lab3[0],opening:courseGuide.lab3.steps[0]},
  lab4:{from:'lab3',previous:courseGuide.lab3.takeaway,connection:lessonJourney.lab4[0],opening:courseGuide.lab4.steps[0]},
