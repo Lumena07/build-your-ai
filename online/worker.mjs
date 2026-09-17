@@ -8,6 +8,43 @@ const greetings=/^(hi\b|hello\b|hey\b|welcome\b|nice to meet you\b|my name is ev
 const sessionCookie='__Host-ai102_session';
 const hash=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 const cookie=request=>(request.headers.get('cookie')||'').match(/(?:^|;\s*)__Host-ai102_session=([a-f0-9-]{36,80})(?:;|$)/)?.[1]||'';
+const normalEmail=value=>String(value||'').trim().toLowerCase();
+const validEmail=email=>email.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const initialStudents=env=>String(env.COURSE_INITIAL_STUDENTS||'').split(',').map(normalEmail).filter(validEmail);
+async function accessFor(env,email){
+ if(!env.DB||!normalEmail(env.COURSE_ADMIN_EMAIL))fail(503,'Student access is temporarily unavailable.');
+ email=normalEmail(email);const admin=normalEmail(env.COURSE_ADMIN_EMAIL);
+ if(email===admin)return {role:'owner',email};
+ const row=await env.DB.prepare('SELECT active FROM course_access WHERE email=?').bind(email).first();
+ if(row)return Number(row.active)===1?{role:'student',email}:null;
+ return initialStudents(env).includes(email)?{role:'student',email}:null;
+}
+async function bootstrapStudents(env,admin){
+ const now=Date.now(),emails=initialStudents(env).filter(email=>email!==admin);
+ if(!emails.length)return;
+ await env.DB.batch(emails.map(email=>env.DB.prepare('INSERT OR IGNORE INTO course_access (email,active,added_by,created_at,updated_at) VALUES (?,1,?,?,?)').bind(email,admin,now,now)));
+}
+async function studentList(env,admin){
+ await bootstrapStudents(env,admin);
+ const result=await env.DB.prepare('SELECT email,created_at,updated_at FROM course_access WHERE active=1 AND email<>? ORDER BY email').bind(admin).all();
+ return result.results||[];
+}
+const safe=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function accessDenied(email){return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>AI 102 · Access needed</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#fff9ef;color:#102b4e;font:18px/1.55 system-ui}.card{width:min(560px,calc(100% - 48px));background:white;border:1px solid #eadcc6;border-radius:24px;padding:32px;box-shadow:0 18px 50px #15324b18}h1{font-size:32px;margin:0 0 12px}a{display:inline-block;margin-top:12px;color:#007d82;font-weight:700}</style></head><body><main class="card"><h1>This email is not invited yet</h1><p><b>${safe(email)}</b> cannot open AI 102. Ask the course administrator to add this exact email.</p><a href="/signout-with-chatgpt?return_to=/">Sign in with a different email</a></main></body></html>`,{status:403,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});}
+async function manageStudents(request,env,access,url){
+ if(access.role!=='owner')return json({detail:'Only the course administrator can manage students.'},403);
+ if(request.method==='GET')return json({students:await studentList(env,access.email)});
+ if(!['POST','DELETE'].includes(request.method))return json({detail:'Method not allowed.'},405);
+ if(request.headers.get('origin')&&request.headers.get('origin')!==url.origin)return json({detail:'Use the course page.'},403);
+ if(Number(request.headers.get('content-length')||0)>1024)return json({detail:'Request is too large.'},413);
+ let body;try{body=await request.json();}catch{return json({detail:'Enter a valid email address.'},400);}
+ const email=normalEmail(body?.email);if(!validEmail(email))return json({detail:'Enter a valid email address.'},400);
+ if(email===access.email)return json({detail:'The administrator account cannot be changed here.'},400);
+ const now=Date.now();
+ if(request.method==='POST')await env.DB.prepare('INSERT INTO course_access (email,active,added_by,created_at,updated_at) VALUES (?,1,?,?,?) ON CONFLICT(email) DO UPDATE SET active=1,added_by=excluded.added_by,updated_at=excluded.updated_at').bind(email,access.email,now,now).run();
+ else await env.DB.prepare('INSERT INTO course_access (email,active,added_by,created_at,updated_at) VALUES (?,0,?,?,?) ON CONFLICT(email) DO UPDATE SET active=0,added_by=excluded.added_by,updated_at=excluded.updated_at').bind(email,access.email,now,now).run();
+ return json({students:await studentList(env,access.email),message:request.method==='POST'?'Student added.':'Student removed.'});
+}
 async function currentSession(request,env,user){
  if(!env.DB)fail(503,'Student access is temporarily unavailable.');
  const token=cookie(request);if(!token)fail(409,'Start your course session to continue.');
@@ -127,12 +164,14 @@ async function transcribe(request,env){
  const response=await openai(env,'audio/transcriptions',{method:'POST',body:upload});const data=await response.json();if(typeof data.text!=='string'||!data.text.trim())fail(502,'Eve did not hear any words. Try again.');return json({text:data.text.slice(0,2000)});
 }
 export default {async fetch(request,env){try{
- const url=new URL(request.url),user=request.headers.get('oai-authenticated-user-id');
- // Sites custom sharing policy admits only the owner and email-invited students.
- if(!user){if(url.pathname.startsWith('/v1/')||url.pathname.startsWith('/api/')||url.pathname==='/health')return json({detail:'Sign in with an invited account to continue.'},401);return Response.redirect(url.origin+'/signin-with-chatgpt?return_to='+encodeURIComponent(url.pathname+url.search),302);}
- if(url.pathname==='/runtime-config.js')return new Response('window.BUILD_AI_CONFIG='+JSON.stringify({apiBaseUrl:url.origin,learnerStorageKey:user,gpuEnabled:false,requireCourseSession:true,realtimeEnabled:true})+';',{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'}});
+ const url=new URL(request.url),user=request.headers.get('oai-authenticated-user-id'),email=normalEmail(request.headers.get('oai-authenticated-user-email'));
+ if(!user||!email){if(url.pathname.startsWith('/v1/')||url.pathname.startsWith('/api/')||url.pathname==='/health')return json({detail:'Sign in with your invited email to continue.'},401);return Response.redirect(url.origin+'/signin-with-chatgpt?return_to='+encodeURIComponent(url.pathname+url.search),302);}
+ const access=await accessFor(env,email);
+ if(!access){if(url.pathname.startsWith('/v1/')||url.pathname.startsWith('/api/')||url.pathname==='/health')return json({detail:'This email is not invited to AI 102.'},403);return accessDenied(email);}
+ if(url.pathname==='/runtime-config.js')return new Response('window.BUILD_AI_CONFIG='+JSON.stringify({apiBaseUrl:url.origin,learnerStorageKey:user,gpuEnabled:false,requireCourseSession:true,realtimeEnabled:true,isAdmin:access.role==='owner'})+';',{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'}});
  if(url.pathname==='/health')return json({teacher_ready:Boolean(env.OPENAI_API_KEY&&env.DB),online:true});
- if(url.pathname==='/api/account')return json({signed_in:true,email:request.headers.get('oai-authenticated-user-email')||''});
+ if(url.pathname==='/api/account')return json({signed_in:true,email,role:access.role});
+ if(url.pathname==='/api/admin/students')return await manageStudents(request,env,access,url);
  if(url.pathname==='/api/session/start'){
   if(request.method!=='POST')return json({detail:'Method not allowed.'},405);
   if(request.headers.get('origin')&&request.headers.get('origin')!==url.origin)return json({detail:'Use the course page.'},403);

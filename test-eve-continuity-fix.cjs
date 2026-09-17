@@ -16,6 +16,7 @@ class D1 {
     return {
       bind: (...args) => ({
         first: async () => this.db.prepare(sql).get(...args) || null,
+        all: async () => ({ results: this.db.prepare(sql).all(...args) }),
         run: async () => ({ meta: { changes: Number(this.db.prepare(sql).run(...args).changes) } }),
         sql,
         args,
@@ -79,7 +80,7 @@ const mockRTC = () => {
   const module = await import(pathToFileURL(__dirname + '/dist/server/index.js'));
   const worker = module.default;
   const db = new D1();
-  const env = { DB: db, OPENAI_API_KEY: 'mock-private-key' };
+  const env = { DB: db, OPENAI_API_KEY: 'mock-private-key', COURSE_ADMIN_EMAIL: 'owner@example.com', COURSE_INITIAL_STUDENTS: 'continuity@example.com' };
   const nativeFetch = global.fetch;
   let callNumber = 0;
   let hangups = 0;
@@ -98,6 +99,7 @@ const mockRTC = () => {
   const workerRequest = async (path, init = {}, cookie = '') => {
     const headers = new Headers(init.headers);
     headers.set('oai-authenticated-user-id', 'continuity-user');
+    headers.set('oai-authenticated-user-email', 'continuity@example.com');
     if (cookie) headers.set('cookie', cookie);
     return worker.fetch(new Request('http://course.test' + path, { ...init, headers }), env);
   };
@@ -135,6 +137,7 @@ const mockRTC = () => {
       for await (const chunk of request) chunks.push(chunk);
       const headers = new Headers(request.headers);
       headers.set('oai-authenticated-user-id', 'browser-continuity-user');
+      headers.set('oai-authenticated-user-email', 'continuity@example.com');
       const webRequest = new Request('http://127.0.0.1:8998' + request.url, {
         method: request.method,
         headers,

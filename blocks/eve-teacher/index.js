@@ -27,6 +27,11 @@
     const labels = [...new Set(buttons.map(item => item.label))].slice(0, 8);
     const retry = buttons.find(item => item.element.closest('#eve-retry') && /^Try again$/i.test(item.label));
 
+    // Never expose answer choices in Eve's private context before the learner chooses,
+    // even when an old voice-retry control is still leaving the page.
+    if (options.choiceMode === 'before_choice') {
+      return { visibleActions: 'Unanswered multiple-choice options', nextAction: 'Select one answer on the page.' };
+    }
     if (retry) return { visibleActions: labels.join(' | '), nextAction: 'Select “Try again”.' };
 
     if (dialog) {
@@ -48,9 +53,6 @@
         visibleActions: labels.join(' | ') || 'Writing box',
         nextAction: `Type an answer in the visible writing box${check ? `, then select “${check}”` : ''}.`
       };
-    }
-    if (options.choiceMode === 'before_choice') {
-      return { visibleActions: 'Unanswered multiple-choice options', nextAction: 'Select one answer on the page.' };
     }
     const forward = buttons.filter(item => !item.element.closest('.chapter-choices') && !item.element.matches('.ghost') && !/^(Previous|Back|Revisit|Review)/i.test(item.label));
     if (options.choiceMode === 'after_choice' && !forward.length) {

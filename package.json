@@ -2,7 +2,7 @@
   "name": "ai102-course",
   "private": true,
   "type": "commonjs",
-  "scripts": {"build": "node scripts/build-online.cjs", "blocks:build": "node scripts/build-blocks.cjs", "blocks:test": "node test-shippable-blocks.cjs", "db:generate": "drizzle-kit generate"},
+  "scripts": {"build": "node scripts/build-online.cjs", "blocks:build": "node scripts/build-blocks.cjs", "blocks:test": "node test-shippable-blocks.cjs", "access:test": "node test-student-admin.cjs", "db:generate": "drizzle-kit generate"},
   "dependencies": {"drizzle-orm": "^0.45.2"},
   "devDependencies": {"drizzle-kit": "^0.31.0"}
 }

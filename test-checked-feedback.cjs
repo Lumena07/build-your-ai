@@ -7,7 +7,7 @@ const {chromium}=require('playwright');
 
 class D1{
  constructor(){this.db=new DatabaseSync(':memory:');for(const file of fs.readdirSync(__dirname+'/drizzle').filter(x=>x.endsWith('.sql')).sort())this.db.exec(fs.readFileSync(__dirname+'/drizzle/'+file,'utf8'));}
- prepare(sql){return{bind:(...args)=>({first:async()=>this.db.prepare(sql).get(...args)||null,run:async()=>({meta:{changes:Number(this.db.prepare(sql).run(...args).changes)}}),sql,args})};}
+ prepare(sql){return{bind:(...args)=>({first:async()=>this.db.prepare(sql).get(...args)||null,all:async()=>({results:this.db.prepare(sql).all(...args)}),run:async()=>({meta:{changes:Number(this.db.prepare(sql).run(...args).changes)}}),sql,args})};}
  async batch(items){this.db.exec('BEGIN');try{const results=items.map(x=>({meta:{changes:Number(this.db.prepare(x.sql).run(...x.args).changes)}}));this.db.exec('COMMIT');return results;}catch(error){this.db.exec('ROLLBACK');throw error;}}
 }
 
@@ -33,7 +33,7 @@ const mockRTC=()=>{
 
 (async()=>{
  const mod=await import(pathToFileURL(__dirname+'/dist/server/index.js'));
- const worker=mod.default,realFetch=fetch,env={DB:new D1(),OPENAI_API_KEY:'mock-private-key'};
+ const worker=mod.default,realFetch=fetch,env={DB:new D1(),OPENAI_API_KEY:'mock-private-key',COURSE_ADMIN_EMAIL:'owner@example.com',COURSE_INITIAL_STUDENTS:'feedback@example.com'};
  global.fetch=async(url,options)=>{
   if(!String(url).startsWith('https://api.openai.com/'))return realFetch(url,options);
   if(String(url).endsWith('/realtime/calls'))return new Response('v=0\r\nmock-answer',{headers:{location:'https://api.openai.com/v1/realtime/calls/rtc_feedback'}});
@@ -41,7 +41,7 @@ const mockRTC=()=>{
   if(String(url).endsWith('/responses'))return Response.json({output_text:JSON.stringify({text:'Yes — that is correct. Continue to the next step.',assessment:'correct'})});
   throw Error('Unexpected provider path');
  };
- const server=http.createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const headers=new Headers(req.headers);headers.set('oai-authenticated-user-id','feedback-learner');const request=new Request('http://127.0.0.1:8998'+req.url,{method:req.method,headers,...(!['GET','HEAD'].includes(req.method)?{body:Buffer.concat(chunks)}:{})});const response=await worker.fetch(request,env);res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));}catch(error){res.writeHead(500);res.end(error.message);}});
+ const server=http.createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const headers=new Headers(req.headers);headers.set('oai-authenticated-user-id','feedback-learner');headers.set('oai-authenticated-user-email','feedback@example.com');const request=new Request('http://127.0.0.1:8998'+req.url,{method:req.method,headers,...(!['GET','HEAD'].includes(req.method)?{body:Buffer.concat(chunks)}:{})});const response=await worker.fetch(request,env);res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));}catch(error){res.writeHead(500);res.end(error.message);}});
  await new Promise(resolve=>server.listen(8998,'127.0.0.1',resolve));
  const browser=await chromium.launch({channel:'msedge',headless:true});
  try{

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#081a2b" />
   <title>AI 102 — Build Your Own AI Agent</title>
   <link rel="stylesheet" href="styles.css?v=20260911-eve10" />
-  <link rel="stylesheet" href="classroom.css?v=20260915-missions23" />
+  <link rel="stylesheet" href="classroom.css?v=20260917-admin32" />
 </head>
 <body>
   <div id="app"><section class="course-loading" role="status" aria-live="polite"><img src="assets/eve-teacher.png" alt=""><h1>Opening your classroom…</h1><div class="eve-loading-dots" aria-hidden="true"><i></i><i></i><i></i></div></section></div>
@@ -15,7 +15,7 @@
   <script>
     async function loadCourse(){
       for(const file of ['blocks/learning-journey/index.js','blocks/classroom-ui/index.js','blocks/eve-teacher/index.js','gpu-client.js','curriculum.js','experience.js','journey.js','lesson-design.js','realtime-eve.js','app.js']){
-        await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=file+'?v=20260916-actions31';script.onload=resolve;script.onerror=()=>reject(new Error('Course connection interrupted. Please reload.'));document.body.append(script);});
+        await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=file+'?v=20260917-admin32';script.onload=resolve;script.onerror=()=>reject(new Error('Course connection interrupted. Please reload.'));document.body.append(script);});
       }
     }
     window.addEventListener('course-session-ready',()=>void loadCourse().catch(error=>window.CourseSession?.block(error.message)),{once:true});

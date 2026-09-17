@@ -1,14 +1,14 @@
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),{pathToFileURL}=require('node:url'),{chromium}=require('playwright'),{DatabaseSync}=require('node:sqlite');
-const base='http://127.0.0.1:8998',identity='oai-authenticated-user-id';
+const base='http://127.0.0.1:8998',identity='oai-authenticated-user-id',identityEmail='oai-authenticated-user-email';
 class TestDB{
  constructor(){this.db=new DatabaseSync(':memory:');for(const file of fs.readdirSync(__dirname+'/drizzle').filter(x=>x.endsWith('.sql')).sort())this.db.exec(fs.readFileSync(__dirname+'/drizzle/'+file,'utf8'));}
- prepare(sql){return {bind:(...args)=>({first:async()=>this.db.prepare(sql).get(...args)||null,run:async()=>({meta:{changes:Number(this.db.prepare(sql).run(...args).changes)}}),sql,args})};}
+ prepare(sql){return {bind:(...args)=>({first:async()=>this.db.prepare(sql).get(...args)||null,all:async()=>({results:this.db.prepare(sql).all(...args)}),run:async()=>({meta:{changes:Number(this.db.prepare(sql).run(...args).changes)}}),sql,args})};}
  async batch(items){this.db.exec('BEGIN');try{const r=items.map(x=>({meta:{changes:Number(this.db.prepare(x.sql).run(...x.args).changes)}}));this.db.exec('COMMIT');return r;}catch(e){this.db.exec('ROLLBACK');throw e;}}
 }
 (async()=>{
  const worker=(await import(pathToFileURL(__dirname+'/dist/server/index.js'))).default,realFetch=global.fetch;
  let providerCalls=0,providerOffline=false;
- const env={OPENAI_API_KEY:'mock-private-server-key',DB:new TestDB()};
+ const env={OPENAI_API_KEY:'mock-private-server-key',DB:new TestDB(),COURSE_ADMIN_EMAIL:'owner@example.com',COURSE_INITIAL_STUDENTS:'alice@example.com,bob@example.com'};
  global.fetch=async(url,options)=>{
   if(!String(url).startsWith('https://api.openai.com/'))return realFetch(url,options);
   providerCalls++;if(providerOffline)return new Response('mock provider failure',{status:500});
@@ -18,12 +18,12 @@ class TestDB{
  };
  const body={lesson:'Mission 1 — Meet AI',lesson_summary:'Explain what AI does and why answers need checking.',learner_message:'What does AI do?',turn_kind:'conversation',has_greeted:true,available_presets:['Biology tutor','Study assistant','Business helper'],preset_examples:['Why do plants need sunlight?']};
  const request=(path,options={})=>new Request(base+path,options);
- let session='';const post=(path,data=body,headers={})=>request(path,{method:'POST',headers:{[identity]:'alice','content-type':'application/json',cookie:session,...headers},body:JSON.stringify(data)});
+ let session='';const post=(path,data=body,headers={})=>request(path,{method:'POST',headers:{[identity]:'alice',[identityEmail]:'alice@example.com','content-type':'application/json',cookie:session,...headers},body:JSON.stringify(data)});
  const claim=async env=>{const r=await worker.fetch(post('/api/session/start',{}),env);assert.equal(r.status,200);session=(r.headers.get('set-cookie')||session).split(';')[0];};
  let result=await worker.fetch(request('/'),env);assert.equal(result.status,302);assert.match(result.headers.get('location'),/signin-with-chatgpt/);
  result=await worker.fetch(post('/v1/teacher/respond',body,{[identity]:''}),env);assert.equal(result.status,401);assert.equal(providerCalls,0);
  result=await worker.fetch(post('/v1/teacher/respond',body,{origin:'https://untrusted.example'}),env);assert.equal(result.status,403);assert.equal(providerCalls,0);
- await claim(env);result=await worker.fetch(request('/gpu-service/api/.env',{headers:{[identity]:'alice',cookie:session}}),env);assert.equal(result.status,404);
+ await claim(env);result=await worker.fetch(request('/gpu-service/api/.env',{headers:{[identity]:'alice',[identityEmail]:'alice@example.com',cookie:session}}),env);assert.equal(result.status,404);
  result=await worker.fetch(post('/v1/teacher/respond',body,{'content-length':'3100001'}),env);assert.equal(result.status,413);
  result=await worker.fetch(post('/v1/teacher/respond',{...body,learner_message:'x'.repeat(3_100_001)}),env);assert.equal(result.status,413);
  result=await worker.fetch(post('/v1/teacher/respond',{...body,available_presets:'incorrect array'}),env);assert.equal(result.status,400);
@@ -31,7 +31,8 @@ class TestDB{
  providerOffline=true;result=await worker.fetch(post('/v1/teacher/respond'),env);assert.equal(result.status,502);assert.doesNotMatch(await result.text(),/mock provider failure|mock-private-server-key/);providerOffline=false;
  const limited={...env,DB:new TestDB()};await claim(limited);for(let i=0;i<20;i++)assert.equal((await worker.fetch(post('/v1/teacher/speech',{text:'One small idea.'}),limited)).status,200);assert.equal((await worker.fetch(post('/v1/teacher/speech',{text:'One small idea.'}),limited)).status,429);
  assert.equal((await worker.fetch(post('/v1/teacher/respond'),{DB:new TestDB()})).status,503);
- const server=http.createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const headers=new Headers(req.headers),who=(req.headers.cookie||'').match(/testStudent=([^;]+)/)?.[1];headers.delete(identity);if(who)headers.set(identity,who);const options={method:req.method,headers};if(!['GET','HEAD'].includes(req.method))options.body=Buffer.concat(chunks);const response=await worker.fetch(request(req.url,options),env);res.writeHead(response.status,Object.fromEntries(response.headers));const bytes=Buffer.from(await response.arrayBuffer());res.end(req.url.startsWith('/runtime-config.js')?bytes.toString().replace('"realtimeEnabled":true','"realtimeEnabled":false'):bytes);}catch{res.writeHead(500);res.end('Test server error');}});
+ env.DB.db.exec('DELETE FROM course_sessions');
+ const server=http.createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const headers=new Headers(req.headers),who=(req.headers.cookie||'').match(/testStudent=([^;]+)/)?.[1];headers.delete(identity);headers.delete(identityEmail);if(who){headers.set(identity,who);headers.set(identityEmail,who+'@example.com');}const options={method:req.method,headers};if(!['GET','HEAD'].includes(req.method))options.body=Buffer.concat(chunks);const response=await worker.fetch(request(req.url,options),env);res.writeHead(response.status,Object.fromEntries(response.headers));const bytes=Buffer.from(await response.arrayBuffer());res.end(req.url.startsWith('/runtime-config.js')?bytes.toString().replace('"realtimeEnabled":true','"realtimeEnabled":false'):bytes);}catch{res.writeHead(500);res.end('Test server error');}});
  await new Promise(resolve=>server.listen(8998,'127.0.0.1',resolve));
  const browser=await chromium.launch({channel:'msedge',headless:true});
  try{
@@ -53,7 +54,7 @@ class TestDB{
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));global.fetch=realFetch;}
  if(process.argv.includes('--live')){
   const privateEnv=fs.readFileSync(__dirname+'/gpu-service/api/.env','utf8'),key=privateEnv.match(/^\s*OPENAI_API_KEY\s*=\s*(.+)\s*$/m)?.[1]?.trim().replace(/^['"]|['"]$/g,'');assert.ok(key,'Approved existing key is present');
-  const live={OPENAI_API_KEY:key,DB:new TestDB()};await claim(live);let response=await worker.fetch(post('/v1/teacher/respond'),live);assert.equal(response.status,200,'Live Eve response must succeed');const reply=await response.json();assert.ok(reply.text);assert.doesNotMatch(reply.text,/^(Hi|Hello|Welcome)\b/i);
+  const live={OPENAI_API_KEY:key,DB:new TestDB(),COURSE_ADMIN_EMAIL:'owner@example.com',COURSE_INITIAL_STUDENTS:'alice@example.com'};await claim(live);let response=await worker.fetch(post('/v1/teacher/respond'),live);assert.equal(response.status,200,'Live Eve response must succeed');const reply=await response.json();assert.ok(reply.text);assert.doesNotMatch(reply.text,/^(Hi|Hello|Welcome)\b/i);
   response=await worker.fetch(post('/v1/teacher/speech',{text:reply.text}),live);assert.equal(response.status,200,'Live speech must succeed');const speech=await response.json();assert.ok(Buffer.from(speech.audio_base64,'base64').length>1000);console.log('PASS: LIVE OpenAI teaching response and LIVE generated speech through the new online worker. D1/identity mocked; physical speaker and Alice’s real invitation acceptance not tested.');
  }
 })().catch(error=>{console.error(error.message);process.exit(1);});

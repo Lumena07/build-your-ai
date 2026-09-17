@@ -15,6 +15,13 @@
       "when": 1789464632363,
       "tag": "0001_special_slyde",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789624786978,
+      "tag": "0002_blushing_stepford_cuckoos",
+      "breakpoints": true
     }
   ]
 }
